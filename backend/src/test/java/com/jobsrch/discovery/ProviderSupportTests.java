@@ -17,9 +17,29 @@ class ProviderSupportTests {
     void preservesKnownNonUsCountriesAndUnknownLocations() {
         assertThat(ProviderSupport.inferCountryCode("Tokyo, Japan")).isEqualTo("JP");
         assertThat(ProviderSupport.inferCountryCode("Sydney, Australia")).isEqualTo("AU");
+        assertThat(ProviderSupport.inferCountryCode("Remote, Brazil")).isEqualTo("BR");
+        assertThat(ProviderSupport.inferCountryCode("Amsterdam")).isEqualTo("NL");
+        assertThat(ProviderSupport.inferCountryCode("Bengaluru")).isEqualTo("IN");
+        assertThat(ProviderSupport.inferCountryCode("Dublin")).isEqualTo("IE");
+        assertThat(ProviderSupport.inferCountryCode("Toronto")).isEqualTo("CA");
         assertThat(ProviderSupport.inferCountryCode("Remote")).isNull();
+        assertThat(ProviderSupport.inferCountryCode("In-Office")).isNull();
         assertThat(ProviderSupport.inferCountryCode(
                 "Singapore; San Francisco, California")).isNull();
+    }
+
+    @Test
+    void usesWordBoundariesAndRetainsMixedCountryEvidence() {
+        assertThat(ProviderSupport.inferCountryCode("Indiana")).isEqualTo("US");
+        assertThat(ProviderSupport.inferCountryCode("Albuquerque, New Mexico"))
+                .isEqualTo("US");
+        assertThat(ProviderSupport.inferCountryCode("Atlanta, Georgia"))
+                .isEqualTo("US");
+        assertThat(ProviderSupport.inferCountryCode("Tbilisi, Georgia"))
+                .isEqualTo("GE");
+        assertThat(ProviderSupport.inferCountryCodes(
+                "San Francisco, California; Vancouver, Canada"))
+                .containsExactlyInAnyOrder("US", "CA");
     }
 
     @Test
@@ -30,5 +50,13 @@ class ProviderSupportTests {
                 .isEqualTo(WorkplaceType.HYBRID);
         assertThat(ProviderSupport.inferWorkplaceType("On-site in Seattle"))
                 .isEqualTo(WorkplaceType.ON_SITE);
+        assertThat(ProviderSupport.inferWorkplaceType("In-Office"))
+                .isEqualTo(WorkplaceType.ON_SITE);
+    }
+
+    @Test
+    void infersCountryFromUnambiguousPostingText() {
+        assertThat(ProviderSupport.inferCountryCode("Available location: Singapore"))
+                .isEqualTo("SG");
     }
 }

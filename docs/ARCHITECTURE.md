@@ -59,6 +59,8 @@ Flyway owns the database schema:
 - `V3__job_index_and_saved_searches.sql`: indexed provider jobs, saved filters,
   and alert matches
 - `V4__expand_indexed_job_location.sql`: room for multi-office provider labels
+- `V5__early_career_job_signals.sql`: opportunity type, career stage, degree
+  language, sponsorship language, and saved-search filters
 
 Never edit an applied migration. Add `V3__description.sql`, then `V4`, and so
 on. Hibernate uses `ddl-auto: validate`, which checks entity mappings against
@@ -176,6 +178,14 @@ point the existing saved-job ownership rules apply. The deterministic
 `ExperienceClassifier` hides clearly senior titles and roles whose stated
 experience exceeds three years. Unknown experience is shown as "entry-level
 likely," not asserted as a fact.
+
+`JobInsightClassifier` adds conservative metadata for opportunity type, career
+stage, degree language, and visa sponsorship. Unknown values stay unknown
+rather than being inferred optimistically. `CandidateMatchExplainer` then adds
+profile-specific evidence such as matching skills and experience range. The
+API returns reasons and cautions instead of a hidden suitability score, so a
+candidate can inspect why a role was included and what still needs verification
+on the employer's page.
 
 Saved searches are user-owned filter snapshots. Each search records the import
 time at creation. After a refresh, `SavedSearchAlertService` compares jobs first

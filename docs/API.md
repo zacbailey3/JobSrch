@@ -57,12 +57,23 @@ Query parameters:
 | `postedWithinDays` | No | Freshness window from 1 to 60 days |
 | `sort` | No | `RELEVANCE` (default) or `NEWEST` |
 | `entryLevelOnly` | No | Defaults to `true`; excludes clearly senior or 4+ year roles |
+| `opportunityType` | No | `FULL_TIME`, `PART_TIME`, `INTERNSHIP`, `APPRENTICESHIP`, or `CONTRACT` |
+| `careerStage` | No | `NEW_GRAD`, `ENTRY_LEVEL`, `EARLY_CAREER`, `INTERNSHIP`, or `APPRENTICESHIP` |
+| `degreeRequirement` | No | Filter by detected degree language |
+| `sponsorshipStatus` | No | `AVAILABLE`, `NOT_AVAILABLE`, or `NOT_STATED` |
+| `maximumExperience` | No | Maximum stated upper experience bound, from 0 to 10 |
 
 Scheduled imports populate a shared provider-neutral index. A broad search uses
 that index and performs an initial live fetch only when no indexed coverage is
 available. A direct Greenhouse or Lever board token always performs a targeted
 live request. The API returns at most 100 normalized postings, with no more
 than five results from one company.
+
+Each result includes normalized `opportunityType`, `careerStage`,
+`degreeRequirement`, `sponsorshipStatus`, and `verifiedAt` fields.
+`matchReasons` and `cautions` explain posting evidence and, when a profile is
+available, matching skills, desired roles, education, and experience. These
+signals are guidance; the employer's original posting remains authoritative.
 
 ## Saved searches and alerts
 
@@ -75,7 +86,9 @@ than five results from one company.
 | `POST` | `/api/saved-searches/alerts/seen` | Mark all of the user's matches read |
 
 Saved-search fields: `name`, `query`, `location`, `countryCode`,
-`workplaceType`, `postedWithinDays`, `entryLevelOnly`, and `alertsEnabled`.
+`workplaceType`, `postedWithinDays`, `entryLevelOnly`, `opportunityType`,
+`careerStage`, `degreeRequirement`, `sponsorshipStatus`, `maximumExperience`,
+and `alertsEnabled`.
 Existing indexed jobs form the baseline; alerts are created only for matching
 jobs first seen during a later import.
 

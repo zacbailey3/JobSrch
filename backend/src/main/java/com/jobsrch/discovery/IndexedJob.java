@@ -68,6 +68,22 @@ public class IndexedJob {
     @Column(name = "entry_level_likely", nullable = false)
     private boolean entryLevelLikely;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "opportunity_type", nullable = false)
+    private OpportunityType opportunityType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "career_stage", nullable = false)
+    private CareerStage careerStage;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "degree_requirement", nullable = false)
+    private DegreeRequirement degreeRequirement;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "sponsorship_status", nullable = false)
+    private SponsorshipStatus sponsorshipStatus;
+
     @Column(nullable = false)
     private boolean active;
 
@@ -102,6 +118,10 @@ public class IndexedJob {
         this.experienceMin = job.experienceMin();
         this.experienceMax = job.experienceMax();
         this.entryLevelLikely = job.entryLevelLikely();
+        this.opportunityType = job.opportunityType();
+        this.careerStage = job.careerStage();
+        this.degreeRequirement = job.degreeRequirement();
+        this.sponsorshipStatus = job.sponsorshipStatus();
         this.active = true;
         this.lastSeenAt = seenAt;
     }
@@ -186,6 +206,22 @@ public class IndexedJob {
         return entryLevelLikely;
     }
 
+    public OpportunityType getOpportunityType() {
+        return opportunityType;
+    }
+
+    public CareerStage getCareerStage() {
+        return careerStage;
+    }
+
+    public DegreeRequirement getDegreeRequirement() {
+        return degreeRequirement;
+    }
+
+    public SponsorshipStatus getSponsorshipStatus() {
+        return sponsorshipStatus;
+    }
+
     public Instant getLastSeenAt() {
         return lastSeenAt;
     }
@@ -209,6 +245,13 @@ public class IndexedJob {
                 expiresAt,
                 experienceMin,
                 experienceMax,
-                entryLevelLikely);
+                entryLevelLikely,
+                opportunityType,
+                careerStage,
+                degreeRequirement,
+                sponsorshipStatus,
+                lastSeenAt,
+                java.util.List.of(),
+                java.util.List.of());
     }
 }

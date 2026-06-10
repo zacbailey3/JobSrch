@@ -2,9 +2,12 @@ package com.jobsrch.discovery;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
@@ -30,6 +33,26 @@ final class ProviderSupport {
             "pennsylvania", "rhode island", "south carolina", "south dakota",
             "tennessee", "texas", "utah", "vermont", "virginia", "washington",
             "west virginia", "wisconsin", "wyoming", "district of columbia");
+    private static final Pattern US_STATE_CODE_LOCATION = Pattern.compile(
+            "(?:,|\\()\\s*(?:" + String.join("|", US_STATE_CODES)
+                    + ")(?=\\s|,|\\)|$)",
+            Pattern.CASE_INSENSITIVE);
+    private static final Map<String, String> COUNTRY_NAMES = countryNames();
+    private static final Map<String, String> INTERNATIONAL_CITY_COUNTRIES = Map.ofEntries(
+            Map.entry("amsterdam", "NL"),
+            Map.entry("bangalore", "IN"),
+            Map.entry("bengaluru", "IN"),
+            Map.entry("berlin", "DE"),
+            Map.entry("dublin", "IE"),
+            Map.entry("london", "GB"),
+            Map.entry("melbourne", "AU"),
+            Map.entry("paris", "FR"),
+            Map.entry("sydney", "AU"),
+            Map.entry("tbilisi", "GE"),
+            Map.entry("tokyo", "JP"),
+            Map.entry("toronto", "CA"),
+            Map.entry("vancouver", "CA"),
+            Map.entry("warsaw", "PL"));
 
     private ProviderSupport() {
     }
@@ -75,46 +98,48 @@ final class ProviderSupport {
      * Unknown locations remain null rather than being silently treated as US.
      */
     static String inferCountryCode(String... values) {
+        Set<String> matches = inferCountryCodes(values);
+        return matches.size() == 1 ? matches.iterator().next() : null;
+    }
+
+    /**
+     * Returns every country explicitly supported by the supplied location text.
+     * Search filtering uses the full set so mixed-country listings are not
+     * presented as exclusively US opportunities.
+     */
+    static Set<String> inferCountryCodes(String... values) {
         String text = normalize(String.join(" ", nonNull(values)));
+        String countryText = text.replaceAll("(?<![a-z])new mexico(?![a-z])", " ");
         Set<String> matches = new LinkedHashSet<>();
-        if (text.contains("united states") || text.contains("u.s.")
-                || text.matches(".*\\busa\\b.*")) {
+        COUNTRY_NAMES.forEach((countryName, countryCode) -> {
+            if (containsPhrase(countryText, countryName)) {
+                matches.add(countryCode);
+            }
+        });
+        INTERNATIONAL_CITY_COUNTRIES.forEach((city, countryCode) -> {
+            if (containsPhrase(text, city)) {
+                matches.add(countryCode);
+            }
+        });
+        if (containsPhrase(text, "u.s.") || containsPhrase(text, "usa")) {
             matches.add("US");
         }
-        if (text.contains("canada")) {
-            matches.add("CA");
-        }
-        if (text.contains("united kingdom") || text.contains("england")
-                || text.contains("scotland") || text.contains("wales")) {
+        if (containsPhrase(text, "uk")
+                || containsPhrase(text, "england")
+                || containsPhrase(text, "scotland")
+                || containsPhrase(text, "wales")) {
             matches.add("GB");
         }
-        if (text.contains("australia")) {
-            matches.add("AU");
-        }
-        if (text.contains("japan")) {
-            matches.add("JP");
-        }
-        if (text.contains("india")) {
-            matches.add("IN");
-        }
-        if (text.contains("germany")) {
-            matches.add("DE");
-        }
-        if (text.contains("france")) {
-            matches.add("FR");
-        }
-        if (text.contains("singapore")) {
-            matches.add("SG");
-        }
-        if (US_STATE_NAMES.stream().anyMatch(text::contains)) {
+        if (US_STATE_NAMES.stream().anyMatch(state ->
+                containsPhrase(text, state)
+                        && !("georgia".equals(state)
+                                && containsPhrase(text, "tbilisi")))) {
             matches.add("US");
         }
-        for (String token : text.toUpperCase(Locale.ROOT).split("[^A-Z]+")) {
-            if (US_STATE_CODES.contains(token)) {
-                matches.add("US");
-            }
+        if (US_STATE_CODE_LOCATION.matcher(text).find()) {
+            matches.add("US");
         }
-        return matches.size() == 1 ? matches.iterator().next() : null;
+        return Set.copyOf(matches);
     }
 
     static WorkplaceType inferWorkplaceType(String... values) {
@@ -126,7 +151,7 @@ final class ProviderSupport {
             return WorkplaceType.REMOTE;
         }
         if (text.contains("on-site") || text.contains("onsite")
-                || text.contains("in office")) {
+                || text.contains("in office") || text.contains("in-office")) {
             return WorkplaceType.ON_SITE;
         }
         return WorkplaceType.UNKNOWN;
@@ -141,5 +166,34 @@ final class ProviderSupport {
 
     private static String normalize(String value) {
         return value.toLowerCase(Locale.ROOT).replaceAll("\\s+", " ").trim();
+    }
+
+    private static boolean containsPhrase(String text, String phrase) {
+        return Pattern.compile(
+                "(?<![a-z])" + Pattern.quote(phrase) + "(?![a-z])",
+                Pattern.CASE_INSENSITIVE)
+                .matcher(text)
+                .find();
+    }
+
+    private static Map<String, String> countryNames() {
+        Map<String, String> names = new LinkedHashMap<>();
+        for (String countryCode : Locale.getISOCountries()) {
+            String name = new Locale.Builder()
+                    .setRegion(countryCode)
+                    .build()
+                    .getDisplayCountry(Locale.ENGLISH);
+            if (!name.isBlank()) {
+                names.put(normalize(name), countryCode);
+            }
+        }
+        // "Georgia" is also a US state; the international city map handles
+        // high-confidence Georgian locations such as Tbilisi.
+        names.remove("georgia");
+        names.put("south korea", "KR");
+        names.put("russia", "RU");
+        names.put("taiwan", "TW");
+        names.put("czech republic", "CZ");
+        return Map.copyOf(names);
     }
 }

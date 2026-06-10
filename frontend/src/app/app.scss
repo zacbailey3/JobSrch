@@ -547,12 +547,88 @@ button,
   margin-top: 0.45rem;
 }
 
+.application-link {
+  display: inline-block;
+  font-size: 0.76rem;
+  font-weight: 800;
+  margin-top: 0.65rem;
+}
+
+.application-notes {
+  border-left: 3px solid #cad8cf;
+  font-size: 0.78rem;
+  margin-top: 0.75rem !important;
+  max-width: 46rem;
+  padding-left: 0.65rem;
+  white-space: pre-wrap;
+}
+
 .status-control {
   font-size: 0.7rem;
 }
 
 .status-control select {
   padding: 0.62rem;
+}
+
+.application-status-fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.application-status-fieldset legend {
+  color: #33443b;
+  font-size: 0.78rem;
+  font-weight: 800;
+  margin-bottom: 0.55rem;
+}
+
+.application-status-options {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.application-status-option {
+  align-items: flex-start;
+  background: #fafbf8;
+  border: 1px solid #dfe6df;
+  border-radius: 12px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: row;
+  gap: 0.65rem;
+  padding: 0.7rem 0.75rem;
+}
+
+.application-status-option.selected {
+  background: #eef5ef;
+  border-color: #6c9079;
+  box-shadow: 0 0 0 1px #6c9079;
+}
+
+.application-status-option input {
+  margin-top: 0.2rem;
+  width: auto;
+}
+
+.application-status-option span,
+.application-status-option small {
+  display: block;
+}
+
+.application-status-option small {
+  color: #68746e;
+  font-size: 0.72rem;
+  font-weight: 500;
+  margin-top: 0.2rem;
+}
+
+.optional-label {
+  color: #7b8780;
+  float: right;
+  font-size: 0.68rem;
+  font-weight: 600;
 }
 
 .remove-button,
@@ -977,6 +1053,49 @@ button,
   -webkit-line-clamp: 3;
 }
 
+.fit-explanation {
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 0.9rem;
+}
+
+.fit-column {
+  background: #edf6f0;
+  border: 1px solid #d4e7da;
+  border-radius: 11px;
+  padding: 0.8rem;
+}
+
+.fit-column strong {
+  color: #245f43;
+  font-size: 0.75rem;
+}
+
+.fit-column ul {
+  color: #52615b;
+  font-size: 0.76rem;
+  line-height: 1.45;
+  margin: 0.45rem 0 0;
+  padding-left: 1rem;
+}
+
+.caution-column {
+  background: #fbf5e8;
+  border-color: #eadcb7;
+}
+
+.caution-column strong {
+  color: #7a6127;
+}
+
+.verified-date {
+  color: #718078;
+  display: block;
+  font-size: 0.68rem;
+  margin-top: 0.65rem;
+}
+
 .discovery-actions {
   align-items: stretch;
   display: flex;
@@ -1114,6 +1233,10 @@ button,
 
   .discovery-card {
     align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .fit-explanation {
     grid-template-columns: 1fr;
   }
 }

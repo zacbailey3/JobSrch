@@ -100,6 +100,27 @@ export interface ResumeAnalysis {
 export type JobProvider = 'GREENHOUSE' | 'LEVER' | 'USAJOBS' | 'ADZUNA';
 export type DiscoverySort = 'RELEVANCE' | 'NEWEST';
 export type WorkplaceType = 'REMOTE' | 'HYBRID' | 'ON_SITE' | 'UNKNOWN';
+export type OpportunityType =
+  | 'FULL_TIME'
+  | 'PART_TIME'
+  | 'INTERNSHIP'
+  | 'APPRENTICESHIP'
+  | 'CONTRACT'
+  | 'UNKNOWN';
+export type CareerStage =
+  | 'INTERNSHIP'
+  | 'APPRENTICESHIP'
+  | 'NEW_GRAD'
+  | 'ENTRY_LEVEL'
+  | 'EARLY_CAREER'
+  | 'UNSPECIFIED';
+export type DegreeRequirement =
+  | 'NO_DEGREE_REQUIRED'
+  | 'DEGREE_PREFERRED'
+  | 'BACHELORS_REQUIRED'
+  | 'ADVANCED_DEGREE_REQUIRED'
+  | 'NOT_STATED';
+export type SponsorshipStatus = 'AVAILABLE' | 'NOT_AVAILABLE' | 'NOT_STATED';
 
 export interface DiscoveredJob {
   externalId: string;
@@ -116,6 +137,13 @@ export interface DiscoveredJob {
   experienceMin: number | null;
   experienceMax: number | null;
   entryLevelLikely: boolean;
+  opportunityType: OpportunityType;
+  careerStage: CareerStage;
+  degreeRequirement: DegreeRequirement;
+  sponsorshipStatus: SponsorshipStatus;
+  verifiedAt: string | null;
+  matchReasons: string[];
+  cautions: string[];
 }
 
 export interface SavedSearch {
@@ -127,6 +155,11 @@ export interface SavedSearch {
   workplaceType: WorkplaceType | null;
   postedWithinDays: number | null;
   entryLevelOnly: boolean;
+  opportunityType: OpportunityType | null;
+  careerStage: CareerStage | null;
+  degreeRequirement: DegreeRequirement | null;
+  sponsorshipStatus: SponsorshipStatus | null;
+  maximumExperience: number | null;
   alertsEnabled: boolean;
   lastCheckedAt: string | null;
   createdAt: string;
@@ -140,6 +173,11 @@ export interface SavedSearchRequest {
   workplaceType: WorkplaceType | null;
   postedWithinDays: number | null;
   entryLevelOnly: boolean;
+  opportunityType: OpportunityType | null;
+  careerStage: CareerStage | null;
+  degreeRequirement: DegreeRequirement | null;
+  sponsorshipStatus: SponsorshipStatus | null;
+  maximumExperience: number | null;
   alertsEnabled: boolean;
 }
 
@@ -234,6 +272,11 @@ export class ApiService {
     postedWithinDays: number | null;
     sort: DiscoverySort;
     entryLevelOnly: boolean;
+    opportunityType: OpportunityType | '';
+    careerStage: CareerStage | '';
+    degreeRequirement: DegreeRequirement | '';
+    sponsorshipStatus: SponsorshipStatus | '';
+    maximumExperience: number | null;
   }): Observable<DiscoveredJob[]> {
     let params = new HttpParams()
       .set('entryLevelOnly', search.entryLevelOnly)
@@ -259,6 +302,21 @@ export class ApiService {
     }
     if (search.postedWithinDays !== null) {
       params = params.set('postedWithinDays', search.postedWithinDays);
+    }
+    if (search.opportunityType) {
+      params = params.set('opportunityType', search.opportunityType);
+    }
+    if (search.careerStage) {
+      params = params.set('careerStage', search.careerStage);
+    }
+    if (search.degreeRequirement) {
+      params = params.set('degreeRequirement', search.degreeRequirement);
+    }
+    if (search.sponsorshipStatus) {
+      params = params.set('sponsorshipStatus', search.sponsorshipStatus);
+    }
+    if (search.maximumExperience !== null) {
+      params = params.set('maximumExperience', search.maximumExperience);
     }
     return this.http.get<DiscoveredJob[]>('/api/discovery', { params });
   }

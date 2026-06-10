@@ -281,6 +281,57 @@
               </select>
             </label>
             <label>
+              Opportunity type
+              <select name="opportunityType" [(ngModel)]="discoverySearch.opportunityType">
+                <option value="">Any opportunity type</option>
+                <option value="FULL_TIME">Full-time</option>
+                <option value="INTERNSHIP">Internship</option>
+                <option value="APPRENTICESHIP">Apprenticeship</option>
+                <option value="PART_TIME">Part-time</option>
+                <option value="CONTRACT">Contract</option>
+              </select>
+            </label>
+            <label>
+              Career stage
+              <select name="careerStage" [(ngModel)]="discoverySearch.careerStage">
+                <option value="">Any early-career stage</option>
+                <option value="NEW_GRAD">New graduate</option>
+                <option value="ENTRY_LEVEL">Explicitly entry-level</option>
+                <option value="EARLY_CAREER">Early-career likely</option>
+                <option value="INTERNSHIP">Internship</option>
+                <option value="APPRENTICESHIP">Apprenticeship</option>
+              </select>
+            </label>
+            <label>
+              Maximum stated experience
+              <select name="maximumExperience" [(ngModel)]="discoverySearch.maximumExperience">
+                <option [ngValue]="0">No experience required</option>
+                <option [ngValue]="1">Up to 1 year</option>
+                <option [ngValue]="2">Up to 2 years</option>
+                <option [ngValue]="3">Up to 3 years</option>
+                <option [ngValue]="null">Any or unstated</option>
+              </select>
+            </label>
+            <label>
+              Degree language
+              <select name="degreeRequirement" [(ngModel)]="discoverySearch.degreeRequirement">
+                <option value="">Any degree requirement</option>
+                <option value="NO_DEGREE_REQUIRED">No degree or equivalent experience accepted</option>
+                <option value="DEGREE_PREFERRED">Degree preferred</option>
+                <option value="BACHELORS_REQUIRED">Bachelor's required</option>
+                <option value="NOT_STATED">Not stated</option>
+              </select>
+            </label>
+            <label>
+              Visa sponsorship
+              <select name="sponsorshipStatus" [(ngModel)]="discoverySearch.sponsorshipStatus">
+                <option value="">Any sponsorship status</option>
+                <option value="AVAILABLE">Available</option>
+                <option value="NOT_AVAILABLE">Not available</option>
+                <option value="NOT_STATED">Not stated</option>
+              </select>
+            </label>
+            <label>
               Freshness
               <select name="postedWithinDays" [(ngModel)]="discoverySearch.postedWithinDays">
                 <option [ngValue]="1">Last 24 hours</option>
@@ -406,6 +457,12 @@
                     @if (job.entryLevelLikely) {
                       <span>Entry-level likely</span>
                     }
+                    @if (job.opportunityType !== 'UNKNOWN') {
+                      <span>{{ opportunityLabel(job.opportunityType) }}</span>
+                    }
+                    @if (job.careerStage !== 'UNSPECIFIED') {
+                      <span>{{ careerStageLabel(job.careerStage) }}</span>
+                    }
                     <span>{{ countryLabel(job.countryCode) }}</span>
                     @if (job.workplaceType !== 'UNKNOWN') {
                       <span>{{ workplaceLabel(job.workplaceType) }}</span>
@@ -416,6 +473,12 @@
                     @if (job.experienceMax !== null) {
                       <span>{{ job.experienceMin ?? 0 }}-{{ job.experienceMax }} years</span>
                     }
+                    @if (job.degreeRequirement !== 'NOT_STATED') {
+                      <span>{{ degreeLabel(job.degreeRequirement) }}</span>
+                    }
+                    @if (job.sponsorshipStatus !== 'NOT_STATED') {
+                      <span>{{ sponsorshipLabel(job.sponsorshipStatus) }}</span>
+                    }
                   </div>
                   <h3>{{ job.title }}</h3>
                   <p class="discovery-company">{{ job.company }} @if (job.location) { - {{ job.location }} }</p>
@@ -423,6 +486,33 @@
                     <small class="freshness-date">Fresh as of {{ job.publishedAt | date:'mediumDate' }}</small>
                   }
                   <p class="discovery-description">{{ job.description }}</p>
+                  <div class="fit-explanation">
+                    <div class="fit-column">
+                      <strong>Why this may fit</strong>
+                      <ul>
+                        @for (reason of job.matchReasons.slice(0, 4); track reason) {
+                          <li>{{ reason }}</li>
+                        } @empty {
+                          <li>No strong suitability signal was found. Review the full posting.</li>
+                        }
+                      </ul>
+                    </div>
+                    @if (job.cautions.length > 0) {
+                      <div class="fit-column caution-column">
+                        <strong>Check before applying</strong>
+                        <ul>
+                          @for (caution of job.cautions.slice(0, 3); track caution) {
+                            <li>{{ caution }}</li>
+                          }
+                        </ul>
+                      </div>
+                    }
+                  </div>
+                  @if (job.verifiedAt) {
+                    <small class="verified-date">
+                      Source checked {{ job.verifiedAt | date:'medium' }}
+                    </small>
+                  }
                 </div>
                 <div class="discovery-actions">
                   <a [href]="job.sourceUrl" target="_blank" rel="noreferrer">View posting</a>
@@ -464,6 +554,13 @@
                     @if (application.appliedAt) {
                       <small>Applied {{ application.appliedAt | date:'mediumDate' }}</small>
                     }
+                    @if (application.sourceUrl) {
+                      <a class="application-link" [href]="application.sourceUrl"
+                        target="_blank" rel="noreferrer">View company posting</a>
+                    }
+                    @if (application.notes) {
+                      <p class="application-notes">{{ application.notes }}</p>
+                    }
                   </div>
                   <label class="status-control">
                     Status
@@ -491,10 +588,13 @@
 
           <aside class="panel add-panel">
             <p class="eyebrow">Manual entry</p>
-            <h2>Add an application</h2>
+            <h2>Record an application</h2>
+            <p class="muted">
+              Add a role you applied to outside JobSrch and keep its outcome in your pipeline.
+            </p>
             <form (ngSubmit)="addApplication(applicationForm)" #applicationForm="ngForm">
               <label>
-                Job title
+                Position
                 <input name="applicationTitle" [(ngModel)]="newApplication.title" required />
               </label>
               <label>
@@ -502,24 +602,35 @@
                 <input name="applicationCompany" [(ngModel)]="newApplication.company" required />
               </label>
               <label>
-                Status
-                <select name="applicationStatus" [(ngModel)]="newApplication.status">
-                  @for (status of applicationStatuses; track status) {
-                    <option [value]="status">{{ statusLabel(status) }}</option>
+                Date applied
+                <input type="date" name="appliedAt"
+                  [(ngModel)]="newApplication.appliedAt" required />
+              </label>
+              <fieldset class="application-status-fieldset">
+                <legend>Have you heard from them?</legend>
+                <div class="application-status-options">
+                  @for (status of manualApplicationStatuses; track status.value) {
+                    <label class="application-status-option"
+                      [class.selected]="newApplication.status === status.value">
+                      <input type="radio" name="applicationStatus"
+                        [value]="status.value" [(ngModel)]="newApplication.status" />
+                      <span>
+                        <strong>{{ status.label }}</strong>
+                        <small>{{ status.description }}</small>
+                      </span>
+                    </label>
                   }
-                </select>
+                </div>
+              </fieldset>
+              <label>
+                Company or posting URL <span class="optional-label">Optional</span>
+                <input type="url" name="applicationUrl" [(ngModel)]="newApplication.sourceUrl"
+                  placeholder="https://company.com/jobs/role" />
               </label>
               <label>
-                Applied date
-                <input type="date" name="appliedAt" [(ngModel)]="newApplication.appliedAt" />
-              </label>
-              <label>
-                Posting URL
-                <input type="url" name="applicationUrl" [(ngModel)]="newApplication.sourceUrl" />
-              </label>
-              <label>
-                Notes
-                <textarea name="applicationNotes" [(ngModel)]="newApplication.notes" rows="4"></textarea>
+                Notes <span class="optional-label">Optional</span>
+                <textarea name="applicationNotes" [(ngModel)]="newApplication.notes" rows="3"
+                  placeholder="Recruiter name, next step, or follow-up date"></textarea>
               </label>
               <button class="primary-button" type="submit" [disabled]="applicationForm.invalid || loading()">
                 Add application

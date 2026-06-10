@@ -7,6 +7,10 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import com.jobsrch.discovery.WorkplaceType;
+import com.jobsrch.discovery.CareerStage;
+import com.jobsrch.discovery.DegreeRequirement;
+import com.jobsrch.discovery.OpportunityType;
+import com.jobsrch.discovery.SponsorshipStatus;
 import com.jobsrch.user.UserAccount;
 
 import jakarta.persistence.Column;
@@ -52,6 +56,25 @@ public class SavedSearch {
     @Column(name = "entry_level_only", nullable = false)
     private boolean entryLevelOnly;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "opportunity_type")
+    private OpportunityType opportunityType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "career_stage")
+    private CareerStage careerStage;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "degree_requirement")
+    private DegreeRequirement degreeRequirement;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "sponsorship_status")
+    private SponsorshipStatus sponsorshipStatus;
+
+    @Column(name = "maximum_experience")
+    private Integer maximumExperience;
+
     @Column(name = "alerts_enabled", nullable = false)
     private boolean alertsEnabled;
 
@@ -82,6 +105,11 @@ public class SavedSearch {
         this.workplaceType = request.workplaceType();
         this.postedWithinDays = request.postedWithinDays();
         this.entryLevelOnly = request.entryLevelOnly();
+        this.opportunityType = request.opportunityType();
+        this.careerStage = request.careerStage();
+        this.degreeRequirement = request.degreeRequirement();
+        this.sponsorshipStatus = request.sponsorshipStatus();
+        this.maximumExperience = request.maximumExperience();
         this.alertsEnabled = request.alertsEnabled();
         this.updatedAt = Instant.now();
     }
@@ -124,6 +152,26 @@ public class SavedSearch {
 
     public boolean isEntryLevelOnly() {
         return entryLevelOnly;
+    }
+
+    public OpportunityType getOpportunityType() {
+        return opportunityType;
+    }
+
+    public CareerStage getCareerStage() {
+        return careerStage;
+    }
+
+    public DegreeRequirement getDegreeRequirement() {
+        return degreeRequirement;
+    }
+
+    public SponsorshipStatus getSponsorshipStatus() {
+        return sponsorshipStatus;
+    }
+
+    public Integer getMaximumExperience() {
+        return maximumExperience;
     }
 
     public boolean isAlertsEnabled() {

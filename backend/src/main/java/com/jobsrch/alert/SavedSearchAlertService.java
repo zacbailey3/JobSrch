@@ -102,6 +102,27 @@ public class SavedSearchAlertService {
         if (search.isEntryLevelOnly() && !job.isEntryLevelLikely()) {
             return false;
         }
+        if (search.getOpportunityType() != null
+                && search.getOpportunityType() != job.getOpportunityType()) {
+            return false;
+        }
+        if (search.getCareerStage() != null
+                && search.getCareerStage() != job.getCareerStage()) {
+            return false;
+        }
+        if (search.getDegreeRequirement() != null
+                && search.getDegreeRequirement() != job.getDegreeRequirement()) {
+            return false;
+        }
+        if (search.getSponsorshipStatus() != null
+                && search.getSponsorshipStatus() != job.getSponsorshipStatus()) {
+            return false;
+        }
+        if (search.getMaximumExperience() != null
+                && job.getExperienceMax() != null
+                && job.getExperienceMax() > search.getMaximumExperience()) {
+            return false;
+        }
         if (!blank(search.getCountryCode())
                 && !"ANY".equalsIgnoreCase(search.getCountryCode())
                 && !normalized(search.getCountryCode()).equals(normalized(job.getCountryCode()))) {

@@ -36,10 +36,13 @@ import com.jobsrch.job.JobRequest;
 import com.jobsrch.job.JobResponse;
 import com.jobsrch.job.JobService;
 import com.jobsrch.discovery.DiscoveredJob;
-import com.jobsrch.discovery.IndexedJob;
+import com.jobsrch.discovery.CareerStage;
+import com.jobsrch.discovery.DegreeRequirement;
 import com.jobsrch.discovery.IndexedJobRepository;
 import com.jobsrch.discovery.JobIndexService;
 import com.jobsrch.discovery.JobProvider;
+import com.jobsrch.discovery.OpportunityType;
+import com.jobsrch.discovery.SponsorshipStatus;
 import com.jobsrch.discovery.WorkplaceType;
 import com.jobsrch.profile.ProfileRequest;
 import com.jobsrch.profile.ProfileResponse;
@@ -210,6 +213,11 @@ class CoreWorkflowTests {
                 WorkplaceType.REMOTE,
                 30,
                 true,
+                OpportunityType.FULL_TIME,
+                CareerStage.ENTRY_LEVEL,
+                DegreeRequirement.NOT_STATED,
+                SponsorshipStatus.NOT_STATED,
+                2,
                 true));
 
         DiscoveredJob discovered = new DiscoveredJob(
@@ -220,17 +228,14 @@ class CoreWorkflowTests {
                 "Remote, US",
                 "US",
                 WorkplaceType.REMOTE,
-                "Build Java services",
+                "This is a full-time role building Java services.",
                 "https://example.com/jobs/alert-1",
                 Instant.now(),
                 null,
                 0,
                 2,
                 true);
-        indexedJobs.save(new IndexedJob(
-                "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-                discovered,
-                Instant.now().plusMillis(1)));
+        jobIndexService.upsertAll(java.util.List.of(discovered));
 
         savedSearchAlertService.refreshAll();
 

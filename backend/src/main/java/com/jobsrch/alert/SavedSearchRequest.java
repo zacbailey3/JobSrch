@@ -1,6 +1,10 @@
 package com.jobsrch.alert;
 
 import com.jobsrch.discovery.WorkplaceType;
+import com.jobsrch.discovery.CareerStage;
+import com.jobsrch.discovery.DegreeRequirement;
+import com.jobsrch.discovery.OpportunityType;
+import com.jobsrch.discovery.SponsorshipStatus;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -15,5 +19,35 @@ public record SavedSearchRequest(
         WorkplaceType workplaceType,
         @Min(1) @Max(60) Integer postedWithinDays,
         boolean entryLevelOnly,
+        OpportunityType opportunityType,
+        CareerStage careerStage,
+        DegreeRequirement degreeRequirement,
+        SponsorshipStatus sponsorshipStatus,
+        @Min(0) @Max(10) Integer maximumExperience,
         boolean alertsEnabled) {
+
+    public SavedSearchRequest(
+            String name,
+            String query,
+            String location,
+            String countryCode,
+            WorkplaceType workplaceType,
+            Integer postedWithinDays,
+            boolean entryLevelOnly,
+            boolean alertsEnabled) {
+        this(
+                name,
+                query,
+                location,
+                countryCode,
+                workplaceType,
+                postedWithinDays,
+                entryLevelOnly,
+                null,
+                null,
+                null,
+                null,
+                null,
+                alertsEnabled);
+    }
 }

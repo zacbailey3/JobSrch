@@ -9,6 +9,8 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
+import com.jobsrch.profile.ProfileService;
+
 class JobDiscoveryServiceTests {
 
     @Test
@@ -32,11 +34,7 @@ class JobDiscoveryServiceTests {
                                 "https://example.com/2", Instant.now(), null, 6, 10, false));
             }
         };
-        JobDiscoveryService service = new JobDiscoveryService(
-                List.of(client),
-                List.of(),
-                new JobBoardCatalog(),
-                mock(JobIndexService.class));
+        JobDiscoveryService service = service(List.of(client));
 
         List<DiscoveredJob> results = service.search(
                 JobProvider.GREENHOUSE,
@@ -98,11 +96,7 @@ class JobDiscoveryServiceTests {
                 return List.of();
             }
         };
-        JobDiscoveryService service = new JobDiscoveryService(
-                List.of(greenhouse, lever),
-                List.of(),
-                new JobBoardCatalog(),
-                mock(JobIndexService.class));
+        JobDiscoveryService service = service(List.of(greenhouse, lever));
 
         List<DiscoveredJob> results = service.search(
                 null,
@@ -148,11 +142,7 @@ class JobDiscoveryServiceTests {
                                 null, null, null, true));
             }
         };
-        JobDiscoveryService service = new JobDiscoveryService(
-                List.of(client),
-                List.of(),
-                new JobBoardCatalog(),
-                mock(JobIndexService.class));
+        JobDiscoveryService service = service(List.of(client));
 
         List<DiscoveredJob> results = service.search(
                 JobProvider.LEVER,
@@ -168,6 +158,53 @@ class JobDiscoveryServiceTests {
 
         assertThat(results).extracting(DiscoveredJob::externalId)
                 .containsExactly("new");
+    }
+
+    @Test
+    void rejectsForeignAndMixedLocationsThatWereIncorrectlyTaggedUs() {
+        JobProviderClient client = new JobProviderClient() {
+            @Override
+            public JobProvider provider() {
+                return JobProvider.GREENHOUSE;
+            }
+
+            @Override
+            public List<DiscoveredJob> fetch(String companyIdentifier, String companyName) {
+                return List.of(
+                        new DiscoveredJob(
+                                "foreign", provider(), companyName, "Software Engineer",
+                                "Amsterdam, Netherlands", "US", WorkplaceType.ON_SITE, "Java",
+                                "https://example.com/foreign", Instant.now(),
+                                null, null, null, true),
+                        new DiscoveredJob(
+                                "mixed", provider(), companyName, "Software Engineer",
+                                "New York, New York; Toronto, Canada", "US",
+                                WorkplaceType.HYBRID, "Java",
+                                "https://example.com/mixed", Instant.now(),
+                                null, null, null, true),
+                        new DiscoveredJob(
+                                "domestic", provider(), companyName, "Software Engineer",
+                                "Austin, TX", "US", WorkplaceType.ON_SITE, "Java",
+                                "https://example.com/domestic", Instant.now(),
+                                null, null, null, true));
+            }
+        };
+        JobDiscoveryService service = service(List.of(client));
+
+        List<DiscoveredJob> results = service.search(
+                JobProvider.GREENHOUSE,
+                "example",
+                "Example",
+                "engineer",
+                null,
+                "US",
+                null,
+                null,
+                DiscoverySort.RELEVANCE,
+                true);
+
+        assertThat(results).extracting(DiscoveredJob::externalId)
+                .containsExactly("domestic");
     }
 
     @Test
@@ -218,11 +255,7 @@ class JobDiscoveryServiceTests {
                 return jobs;
             }
         };
-        JobDiscoveryService service = new JobDiscoveryService(
-                List.of(client),
-                List.of(),
-                new JobBoardCatalog(),
-                mock(JobIndexService.class));
+        JobDiscoveryService service = service(List.of(client));
 
         List<DiscoveredJob> results = service.search(
                 JobProvider.GREENHOUSE,
@@ -243,5 +276,16 @@ class JobDiscoveryServiceTests {
         assertThat(results.stream()
                 .filter(job -> job.company().equals("Other Co")))
                 .hasSize(2);
+    }
+
+    private JobDiscoveryService service(List<JobProviderClient> clients) {
+        return new JobDiscoveryService(
+                clients,
+                List.of(),
+                new JobBoardCatalog(),
+                mock(JobIndexService.class),
+                new JobInsightClassifier(),
+                new CandidateMatchExplainer(),
+                mock(ProfileService.class));
     }
 }

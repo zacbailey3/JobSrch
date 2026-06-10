@@ -14,8 +14,11 @@ import java.util.Set;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.security.oauth2.jwt.Jwt;
 
 import com.jobsrch.discovery.JobBoardCatalog.JobBoard;
+import com.jobsrch.profile.ProfileResponse;
+import com.jobsrch.profile.ProfileService;
 
 @Service
 public class JobDiscoveryService {
@@ -29,16 +32,25 @@ public class JobDiscoveryService {
     private final Map<JobProvider, AggregateJobProviderClient> aggregateClients;
     private final JobBoardCatalog catalog;
     private final JobIndexService index;
+    private final JobInsightClassifier insights;
+    private final CandidateMatchExplainer matchExplainer;
+    private final ProfileService profiles;
 
     public JobDiscoveryService(
             List<JobProviderClient> clients,
             List<AggregateJobProviderClient> aggregateClients,
             JobBoardCatalog catalog,
-            JobIndexService index) {
+            JobIndexService index,
+            JobInsightClassifier insights,
+            CandidateMatchExplainer matchExplainer,
+            ProfileService profiles) {
         this.clients = new EnumMap<>(JobProvider.class);
         this.aggregateClients = new EnumMap<>(JobProvider.class);
         this.catalog = catalog;
         this.index = index;
+        this.insights = insights;
+        this.matchExplainer = matchExplainer;
+        this.profiles = profiles;
         clients.forEach(client -> this.clients.put(client.provider(), client));
         aggregateClients.forEach(client -> this.aggregateClients.put(client.provider(), client));
     }
@@ -49,6 +61,7 @@ public class JobDiscoveryService {
      * supplies sources; a supplied identifier preserves direct board lookup.
      */
     public List<DiscoveredJob> search(
+            Jwt jwt,
             JobProvider provider,
             String companyIdentifier,
             String companyName,
@@ -58,8 +71,51 @@ public class JobDiscoveryService {
             WorkplaceType workplaceType,
             Integer postedWithinDays,
             DiscoverySort sort,
-            boolean entryLevelOnly) {
+            boolean entryLevelOnly,
+            OpportunityType opportunityType,
+            CareerStage careerStage,
+            DegreeRequirement degreeRequirement,
+            SponsorshipStatus sponsorshipStatus,
+            Integer maximumExperience) {
+        ProfileResponse profile = jwt == null ? null : profiles.get(jwt);
+        return search(
+                profile,
+                provider,
+                companyIdentifier,
+                companyName,
+                query,
+                location,
+                countryCode,
+                workplaceType,
+                postedWithinDays,
+                sort,
+                entryLevelOnly,
+                opportunityType,
+                careerStage,
+                degreeRequirement,
+                sponsorshipStatus,
+                maximumExperience);
+    }
+
+    List<DiscoveredJob> search(
+            ProfileResponse profile,
+            JobProvider provider,
+            String companyIdentifier,
+            String companyName,
+            String query,
+            String location,
+            String countryCode,
+            WorkplaceType workplaceType,
+            Integer postedWithinDays,
+            DiscoverySort sort,
+            boolean entryLevelOnly,
+            OpportunityType opportunityType,
+            CareerStage careerStage,
+            DegreeRequirement degreeRequirement,
+            SponsorshipStatus sponsorshipStatus,
+            Integer maximumExperience) {
         validatePostedWithinDays(postedWithinDays);
+        validateMaximumExperience(maximumExperience);
         boolean directBoardSearch = companyIdentifier != null && !companyIdentifier.isBlank();
         List<JobBoard> boards = directBoardSearch
                 ? directBoards(provider, companyIdentifier, companyName)
@@ -95,14 +151,22 @@ public class JobDiscoveryService {
         liveJobs.forEach(job -> uniqueJobs.putIfAbsent(uniqueKey(job), job));
 
         List<ScoredJob> matches = uniqueJobs.values().stream()
+                .map(insights::enrich)
                 .filter(job -> !entryLevelOnly || job.entryLevelLikely())
+                .filter(job -> opportunityType == null || job.opportunityType() == opportunityType)
+                .filter(job -> careerStage == null || job.careerStage() == careerStage)
+                .filter(job -> degreeRequirement == null
+                        || job.degreeRequirement() == degreeRequirement)
+                .filter(job -> sponsorshipStatus == null
+                        || job.sponsorshipStatus() == sponsorshipStatus)
+                .filter(job -> maximumExperience == null
+                        || job.experienceMax() == null
+                        || job.experienceMax() <= maximumExperience)
                 .filter(job -> directBoardSearch || isBlank(companyName)
                         || contains(job.company(), normalize(companyName)))
                 .filter(job -> isBlank(location)
                         || contains(job.location(), normalize(location)))
-                .filter(job -> isBlank(countryCode)
-                        || "ANY".equalsIgnoreCase(countryCode)
-                        || normalize(countryCode).equals(normalize(job.countryCode())))
+                .filter(job -> matchesCountry(job, countryCode))
                 .filter(job -> workplaceType == null
                         || job.workplaceType() == workplaceType)
                 .filter(job -> postedWithinDays == null
@@ -114,7 +178,38 @@ public class JobDiscoveryService {
 
         return balanceCompanies(matches).stream()
                 .map(ScoredJob::job)
+                .map(job -> matchExplainer.explain(job, profile))
                 .toList();
+    }
+
+    List<DiscoveredJob> search(
+            JobProvider provider,
+            String companyIdentifier,
+            String companyName,
+            String query,
+            String location,
+            String countryCode,
+            WorkplaceType workplaceType,
+            Integer postedWithinDays,
+            DiscoverySort sort,
+            boolean entryLevelOnly) {
+        return search(
+                (ProfileResponse) null,
+                provider,
+                companyIdentifier,
+                companyName,
+                query,
+                location,
+                countryCode,
+                workplaceType,
+                postedWithinDays,
+                sort,
+                entryLevelOnly,
+                null,
+                null,
+                null,
+                null,
+                null);
     }
 
     private void validatePostedWithinDays(Integer postedWithinDays) {
@@ -123,6 +218,15 @@ public class JobDiscoveryService {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "Posted-within days must be between 1 and 60");
+        }
+    }
+
+    private void validateMaximumExperience(Integer maximumExperience) {
+        if (maximumExperience != null
+                && (maximumExperience < 0 || maximumExperience > 10)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Maximum experience must be between 0 and 10 years");
         }
     }
 
@@ -238,6 +342,23 @@ public class JobDiscoveryService {
 
     private boolean contains(String value, String query) {
         return normalize(value).contains(query);
+    }
+
+    private boolean matchesCountry(DiscoveredJob job, String requestedCountryCode) {
+        if (isBlank(requestedCountryCode)
+                || "ANY".equalsIgnoreCase(requestedCountryCode)) {
+            return true;
+        }
+
+        Set<String> locationCountries =
+                ProviderSupport.inferCountryCodes(job.location());
+        if (!locationCountries.isEmpty()) {
+            return locationCountries.size() == 1
+                    && locationCountries.contains(
+                            requestedCountryCode.toUpperCase(Locale.ROOT));
+        }
+        return normalize(requestedCountryCode)
+                .equals(normalize(job.countryCode()));
     }
 
     private String normalize(String value) {

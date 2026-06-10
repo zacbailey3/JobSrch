@@ -8,18 +8,22 @@ import {
   ApplicationRequest,
   ApplicationStatus,
   CareerProfile,
+  CareerStage,
   Dashboard,
+  DegreeRequirement,
   DiscoverySort,
   DiscoveredJob,
   Job,
   JobApplication,
   JobProvider,
   JobRequest,
+  OpportunityType,
   Resume,
   ResumeAnalysis,
   SavedSearch,
   SavedSearchRequest,
   SearchAlert,
+  SponsorshipStatus,
   WorkplaceType
 } from './core/api.service';
 import { AuthService } from './core/auth.service';
@@ -101,6 +105,37 @@ export class App implements OnInit {
     'REJECTED',
     'WITHDRAWN'
   ];
+  readonly manualApplicationStatuses: {
+    value: Exclude<ApplicationStatus, 'SAVED'>;
+    label: string;
+    description: string;
+  }[] = [
+    {
+      value: 'APPLIED',
+      label: 'Awaiting response',
+      description: 'Applied, but have not heard back yet.'
+    },
+    {
+      value: 'INTERVIEW',
+      label: 'Interview',
+      description: 'The company invited me to interview.'
+    },
+    {
+      value: 'OFFER',
+      label: 'Offer',
+      description: 'I received an offer.'
+    },
+    {
+      value: 'REJECTED',
+      label: 'Declined',
+      description: 'The company decided not to move forward.'
+    },
+    {
+      value: 'WITHDRAWN',
+      label: 'Withdrawn',
+      description: 'I chose to withdraw my application.'
+    }
+  ];
 
   credentials = {
     email: '',
@@ -124,6 +159,11 @@ export class App implements OnInit {
     postedWithinDays: number | null;
     sort: DiscoverySort;
     entryLevelOnly: boolean;
+    opportunityType: OpportunityType | '';
+    careerStage: CareerStage | '';
+    degreeRequirement: DegreeRequirement | '';
+    sponsorshipStatus: SponsorshipStatus | '';
+    maximumExperience: number | null;
   } = {
     provider: '',
     companyIdentifier: '',
@@ -134,7 +174,12 @@ export class App implements OnInit {
     workplaceType: '',
     postedWithinDays: 30,
     sort: 'RELEVANCE',
-    entryLevelOnly: true
+    entryLevelOnly: true,
+    opportunityType: '',
+    careerStage: '',
+    degreeRequirement: '',
+    sponsorshipStatus: '',
+    maximumExperience: 3
   };
 
   constructor(
@@ -241,6 +286,11 @@ export class App implements OnInit {
       workplaceType: this.discoverySearch.workplaceType || null,
       postedWithinDays: this.discoverySearch.postedWithinDays,
       entryLevelOnly: this.discoverySearch.entryLevelOnly,
+      opportunityType: this.discoverySearch.opportunityType || null,
+      careerStage: this.discoverySearch.careerStage || null,
+      degreeRequirement: this.discoverySearch.degreeRequirement || null,
+      sponsorshipStatus: this.discoverySearch.sponsorshipStatus || null,
+      maximumExperience: this.discoverySearch.maximumExperience,
       alertsEnabled: true
     };
     this.beginRequest();
@@ -267,7 +317,12 @@ export class App implements OnInit {
       workplaceType: search.workplaceType ?? '',
       postedWithinDays: search.postedWithinDays,
       sort: 'RELEVANCE',
-      entryLevelOnly: search.entryLevelOnly
+      entryLevelOnly: search.entryLevelOnly,
+      opportunityType: search.opportunityType ?? '',
+      careerStage: search.careerStage ?? '',
+      degreeRequirement: search.degreeRequirement ?? '',
+      sponsorshipStatus: search.sponsorshipStatus ?? '',
+      maximumExperience: search.maximumExperience
     };
     this.executeDiscoverySearch();
   }
@@ -451,11 +506,84 @@ export class App implements OnInit {
   }
 
   statusLabel(status: ApplicationStatus): string {
-    return status.charAt(0) + status.slice(1).toLowerCase();
+    switch (status) {
+      case 'APPLIED':
+        return 'Awaiting response';
+      case 'INTERVIEW':
+        return 'Interview';
+      case 'OFFER':
+        return 'Offer';
+      case 'REJECTED':
+        return 'Declined';
+      case 'WITHDRAWN':
+        return 'Withdrawn';
+      default:
+        return 'Saved';
+    }
   }
 
   workplaceLabel(workplaceType: WorkplaceType): string {
     return switchWorkplaceLabel(workplaceType);
+  }
+
+  opportunityLabel(type: OpportunityType): string {
+    switch (type) {
+      case 'FULL_TIME':
+        return 'Full-time';
+      case 'PART_TIME':
+        return 'Part-time';
+      case 'INTERNSHIP':
+        return 'Internship';
+      case 'APPRENTICESHIP':
+        return 'Apprenticeship';
+      case 'CONTRACT':
+        return 'Contract';
+      default:
+        return 'Type unspecified';
+    }
+  }
+
+  careerStageLabel(stage: CareerStage): string {
+    switch (stage) {
+      case 'NEW_GRAD':
+        return 'New grad';
+      case 'ENTRY_LEVEL':
+        return 'Entry-level';
+      case 'EARLY_CAREER':
+        return 'Early-career likely';
+      case 'INTERNSHIP':
+        return 'Internship';
+      case 'APPRENTICESHIP':
+        return 'Apprenticeship';
+      default:
+        return 'Career stage unspecified';
+    }
+  }
+
+  degreeLabel(requirement: DegreeRequirement): string {
+    switch (requirement) {
+      case 'NO_DEGREE_REQUIRED':
+        return 'Degree not required';
+      case 'DEGREE_PREFERRED':
+        return 'Degree preferred';
+      case 'BACHELORS_REQUIRED':
+        return "Bachelor's required";
+      case 'ADVANCED_DEGREE_REQUIRED':
+        return 'Advanced degree required';
+      default:
+        return 'Degree not stated';
+    }
+  }
+
+  sponsorshipLabel(status: SponsorshipStatus): string {
+    switch (status) {
+      case 'AVAILABLE':
+        return 'Sponsorship available';
+      case 'NOT_AVAILABLE':
+        return 'No sponsorship';
+      default:
+        return 'Sponsorship not stated';
+    }
   }
 
   countryLabel(countryCode: string | null): string {

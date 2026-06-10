@@ -68,6 +68,8 @@ public class GreenhouseJobProviderClient implements JobProviderClient {
                 classifier.classify(job.title(), description);
         String countryCode = ProviderSupport.inferCountryCode(location);
         if (countryCode == null) {
+            // Descriptions often contain global legal or office boilerplate,
+            // so only structured office locations are safe country evidence.
             countryCode = ProviderSupport.inferCountryCode(officeLocations);
         }
         return new DiscoveredJob(

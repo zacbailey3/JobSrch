@@ -24,6 +24,9 @@ experience.
 - Scheduled provider importing with URL deduplication and stale-job expiration
 - Saved searches with in-app alerts for newly imported matches
 - US-first country, workplace, freshness, and newest-first filters
+- Early-career filters for internships, apprenticeships, new-grad roles,
+  experience limits, degree language, and visa sponsorship
+- Explainable suitability notes using posting evidence and candidate profile skills
 - Optional filtering of positions already recorded as applications
 - Dashboard totals for saved jobs, applications, interviews, and offers
 

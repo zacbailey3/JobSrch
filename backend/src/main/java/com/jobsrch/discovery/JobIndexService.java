@@ -23,15 +23,18 @@ import org.springframework.transaction.annotation.Transactional;
 public class JobIndexService {
 
     private final IndexedJobRepository jobs;
+    private final JobInsightClassifier insights;
 
-    public JobIndexService(IndexedJobRepository jobs) {
+    public JobIndexService(IndexedJobRepository jobs, JobInsightClassifier insights) {
         this.jobs = jobs;
+        this.insights = insights;
     }
 
     @Transactional
     public void upsertAll(List<DiscoveredJob> discoveredJobs) {
         Instant seenAt = Instant.now();
-        for (DiscoveredJob job : discoveredJobs) {
+        for (DiscoveredJob discovered : discoveredJobs) {
+            DiscoveredJob job = insights.enrich(discovered);
             String sourceKey = sourceKey(job);
             IndexedJob indexed = jobs.findBySourceKey(sourceKey)
                     .orElseGet(() -> new IndexedJob(sourceKey, job, seenAt));

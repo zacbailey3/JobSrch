@@ -31,6 +31,46 @@ describe('App', () => {
     expect(app.discoverySearch.countryCode).toBe('US');
     expect(app.discoverySearch.postedWithinDays).toBe(30);
     expect(app.discoverySearch.sort).toBe('RELEVANCE');
+    expect(app.discoverySearch.maximumExperience).toBe(3);
+  });
+
+  it('starts a manual application as applied and awaiting response', () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+
+    expect(app.newApplication.status).toBe('APPLIED');
+    expect(app.newApplication.appliedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(app.statusLabel('APPLIED')).toBe('Awaiting response');
+    expect(app.manualApplicationStatuses.map(status => status.value))
+      .toEqual(['APPLIED', 'INTERVIEW', 'OFFER', 'REJECTED', 'WITHDRAWN']);
+  });
+
+  it('renders the manual application fields and outcome choices', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    const app = fixture.componentInstance;
+    app.auth.session.set({
+      accessToken: 'test-token',
+      expiresIn: 3600,
+      userId: 'test-user',
+      email: 'student@example.com',
+      firstName: 'Student',
+      lastName: 'Developer'
+    });
+    app.view.set('applications');
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const dateInput = compiled.querySelector<HTMLInputElement>(
+      'input[name="appliedAt"]');
+    const urlInput = compiled.querySelector<HTMLInputElement>(
+      'input[name="applicationUrl"]');
+
+    expect(compiled.textContent).toContain('Record an application');
+    expect(compiled.textContent).toContain('Have you heard from them?');
+    expect(compiled.querySelectorAll('input[name="applicationStatus"]')).toHaveLength(5);
+    expect(dateInput?.required).toBe(true);
+    expect(urlInput?.required).toBe(false);
   });
 
   it('hides discovered roles already recorded as applied', () => {
@@ -50,7 +90,14 @@ describe('App', () => {
       expiresAt: null,
       experienceMin: 0,
       experienceMax: 2,
-      entryLevelLikely: true
+      entryLevelLikely: true,
+      opportunityType: 'FULL_TIME',
+      careerStage: 'ENTRY_LEVEL',
+      degreeRequirement: 'NOT_STATED',
+      sponsorshipStatus: 'NOT_STATED',
+      verifiedAt: '2026-06-09T00:00:00Z',
+      matchReasons: ['The title explicitly uses a junior or entry-level label.'],
+      cautions: ['Visa sponsorship is not specified.']
     };
     const application: JobApplication = {
       id: 'application-1',
