@@ -30,6 +30,18 @@ jobsrch:
     ttl: PT8H
   storage:
     resume-directory: ${RESUME_DIRECTORY:./data/resumes}
+  providers:
+    usajobs:
+      email: ${USAJOBS_EMAIL:}
+      api-key: ${USAJOBS_API_KEY:}
+    adzuna:
+      app-id: ${ADZUNA_APP_ID:}
+      app-key: ${ADZUNA_APP_KEY:}
+  import:
+    enabled: ${JOB_IMPORT_ENABLED:true}
+    initial-delay-ms: ${JOB_IMPORT_INITIAL_DELAY_MS:15000}
+    fixed-delay-ms: ${JOB_IMPORT_FIXED_DELAY_MS:21600000}
+    expire-after-hours: ${JOB_EXPIRE_AFTER_HOURS:72}
 
 management:
   endpoints:

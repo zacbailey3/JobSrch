@@ -63,24 +63,48 @@ public class LeverJobProviderClient implements JobProviderClient {
                 : job.descriptionPlain();
         ExperienceClassifier.ExperienceClassification experience =
                 classifier.classify(job.text(), description);
+        WorkplaceType workplaceType = parseWorkplaceType(job.workplaceType());
         return new DiscoveredJob(
                 job.id(),
                 provider(),
                 companyName,
                 job.text(),
                 job.categories() == null ? null : job.categories().location(),
+                job.country() == null ? ProviderSupport.inferCountryCode(
+                        job.categories() == null ? null : job.categories().location(),
+                        description) : job.country().toUpperCase(),
+                workplaceType == WorkplaceType.UNKNOWN
+                        ? ProviderSupport.inferWorkplaceType(
+                                job.categories() == null ? null : job.categories().location(),
+                                description)
+                        : workplaceType,
                 description,
                 job.hostedUrl(),
                 job.createdAt() == null ? null : Instant.ofEpochMilli(job.createdAt()),
+                null,
                 experience.minimumYears(),
                 experience.maximumYears(),
                 experience.entryLevelLikely());
+    }
+
+    private WorkplaceType parseWorkplaceType(String value) {
+        if (value == null) {
+            return WorkplaceType.UNKNOWN;
+        }
+        return switch (value.toLowerCase()) {
+            case "remote" -> WorkplaceType.REMOTE;
+            case "hybrid" -> WorkplaceType.HYBRID;
+            case "on-site", "onsite" -> WorkplaceType.ON_SITE;
+            default -> WorkplaceType.UNKNOWN;
+        };
     }
 
     private record LeverJob(
             String id,
             String text,
             LeverCategories categories,
+            String country,
+            String workplaceType,
             String description,
             @JsonProperty("descriptionPlain") String descriptionPlain,
             @JsonProperty("hostedUrl") String hostedUrl,

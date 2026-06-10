@@ -9,13 +9,18 @@ import {
   ApplicationStatus,
   CareerProfile,
   Dashboard,
+  DiscoverySort,
   DiscoveredJob,
   Job,
   JobApplication,
   JobProvider,
   JobRequest,
   Resume,
-  ResumeAnalysis
+  ResumeAnalysis,
+  SavedSearch,
+  SavedSearchRequest,
+  SearchAlert,
+  WorkplaceType
 } from './core/api.service';
 import { AuthService } from './core/auth.service';
 
@@ -34,6 +39,19 @@ const EMPTY_PROFILE: CareerProfile = {
   portfolioUrl: '',
   updatedAt: null
 };
+
+function switchWorkplaceLabel(workplaceType: WorkplaceType): string {
+  switch (workplaceType) {
+    case 'ON_SITE':
+      return 'On-site';
+    case 'REMOTE':
+      return 'Remote';
+    case 'HYBRID':
+      return 'Hybrid';
+    default:
+      return 'Workplace unspecified';
+  }
+}
 
 /**
  * Root workspace coordinator for the first MVP.
@@ -64,6 +82,10 @@ export class App implements OnInit {
   readonly discoveryLoading = signal(false);
   readonly discoverySearched = signal(false);
   readonly hideAppliedDiscovery = signal(true);
+  readonly savedSearches = signal<SavedSearch[]>([]);
+  readonly searchAlerts = signal<SearchAlert[]>([]);
+  readonly unreadAlertCount = computed(() =>
+    this.searchAlerts().filter(alert => !alert.seen).length);
   readonly profileMode = signal<'view' | 'edit'>('view');
   readonly savedProfile = signal<CareerProfile>({ ...EMPTY_PROFILE });
   readonly visibleDiscoveryResults = computed(() =>
@@ -90,12 +112,17 @@ export class App implements OnInit {
   newJob: JobRequest = this.emptyJob();
   newApplication: ApplicationRequest = this.emptyApplication();
   profile: CareerProfile = { ...EMPTY_PROFILE };
+  savedSearchName = '';
   discoverySearch: {
     provider: JobProvider | '';
     companyIdentifier: string;
     companyName: string;
     query: string;
     location: string;
+    countryCode: string;
+    workplaceType: WorkplaceType | '';
+    postedWithinDays: number | null;
+    sort: DiscoverySort;
     entryLevelOnly: boolean;
   } = {
     provider: '',
@@ -103,6 +130,10 @@ export class App implements OnInit {
     companyName: '',
     query: '',
     location: '',
+    countryCode: 'US',
+    workplaceType: '',
+    postedWithinDays: 30,
+    sort: 'RELEVANCE',
     entryLevelOnly: true
   };
 
@@ -193,6 +224,86 @@ export class App implements OnInit {
     if (form.invalid) {
       return;
     }
+    this.executeDiscoverySearch();
+  }
+
+  saveCurrentSearch(): void {
+    const name = this.savedSearchName.trim();
+    if (!name) {
+      this.error.set('Give this search a short name first.');
+      return;
+    }
+    const request: SavedSearchRequest = {
+      name,
+      query: this.discoverySearch.query,
+      location: this.discoverySearch.location,
+      countryCode: this.discoverySearch.countryCode,
+      workplaceType: this.discoverySearch.workplaceType || null,
+      postedWithinDays: this.discoverySearch.postedWithinDays,
+      entryLevelOnly: this.discoverySearch.entryLevelOnly,
+      alertsEnabled: true
+    };
+    this.beginRequest();
+    this.api.createSavedSearch(request).subscribe({
+      next: saved => {
+        this.savedSearches.update(searches => [saved, ...searches]);
+        this.savedSearchName = '';
+        this.loading.set(false);
+        this.success.set(`Saved search "${saved.name}". New matches will appear here.`);
+      },
+      error: error => this.handleError(error)
+    });
+  }
+
+  runSavedSearch(search: SavedSearch): void {
+    this.discoverySearch = {
+      ...this.discoverySearch,
+      provider: '',
+      companyIdentifier: '',
+      companyName: '',
+      query: search.query ?? '',
+      location: search.location ?? '',
+      countryCode: search.countryCode ?? 'US',
+      workplaceType: search.workplaceType ?? '',
+      postedWithinDays: search.postedWithinDays,
+      sort: 'RELEVANCE',
+      entryLevelOnly: search.entryLevelOnly
+    };
+    this.executeDiscoverySearch();
+  }
+
+  deleteSavedSearch(id: string): void {
+    this.api.deleteSavedSearch(id).subscribe({
+      next: () => {
+        this.savedSearches.update(searches => searches.filter(search => search.id !== id));
+        this.searchAlerts.update(alerts => alerts.filter(alert => alert.savedSearchId !== id));
+      },
+      error: error => this.handleError(error)
+    });
+  }
+
+  markAlertsSeen(): void {
+    this.api.markSearchAlertsSeen().subscribe({
+      next: () => this.searchAlerts.update(alerts =>
+        alerts.map(alert => ({ ...alert, seen: true }))),
+      error: error => this.handleError(error)
+    });
+  }
+
+  providerLabel(provider: JobProvider): string {
+    switch (provider) {
+      case 'GREENHOUSE':
+        return 'Greenhouse';
+      case 'LEVER':
+        return 'Lever';
+      case 'USAJOBS':
+        return 'USAJOBS';
+      case 'ADZUNA':
+        return 'Adzuna';
+    }
+  }
+
+  private executeDiscoverySearch(): void {
     this.error.set('');
     this.success.set('');
     this.discoveryLoading.set(true);
@@ -343,6 +454,14 @@ export class App implements OnInit {
     return status.charAt(0) + status.slice(1).toLowerCase();
   }
 
+  workplaceLabel(workplaceType: WorkplaceType): string {
+    return switchWorkplaceLabel(workplaceType);
+  }
+
+  countryLabel(countryCode: string | null): string {
+    return countryCode === 'US' ? 'United States' : countryCode ?? 'Country unspecified';
+  }
+
   startProfileEdit(): void {
     this.profile = { ...this.savedProfile() };
     this.profileMode.set('edit');
@@ -388,6 +507,8 @@ export class App implements OnInit {
     this.discoveryResults.set([]);
     this.discoverySearched.set(false);
     this.savedProfile.set({ ...EMPTY_PROFILE });
+    this.savedSearches.set([]);
+    this.searchAlerts.set([]);
     this.profile = { ...EMPTY_PROFILE };
     this.profileMode.set('view');
     this.view.set('dashboard');
@@ -406,6 +527,7 @@ export class App implements OnInit {
       error: error => this.handleError(error)
     });
     this.loadResumes();
+    this.loadSavedSearchData();
   }
 
   private loadDashboardData(): void {
@@ -436,6 +558,17 @@ export class App implements OnInit {
   private loadResumes(): void {
     this.api.getResumes().subscribe({
       next: resumes => this.resumes.set(resumes),
+      error: error => this.handleError(error)
+    });
+  }
+
+  private loadSavedSearchData(): void {
+    this.api.getSavedSearches().subscribe({
+      next: searches => this.savedSearches.set(searches),
+      error: error => this.handleError(error)
+    });
+    this.api.getSearchAlerts().subscribe({
+      next: alerts => this.searchAlerts.set(alerts),
       error: error => this.handleError(error)
     });
   }

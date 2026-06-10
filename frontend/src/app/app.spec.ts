@@ -24,6 +24,15 @@ describe('App', () => {
     expect(compiled.textContent).toContain('JobSrch');
   });
 
+  it('starts discovery with US and recent-job defaults', () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+
+    expect(app.discoverySearch.countryCode).toBe('US');
+    expect(app.discoverySearch.postedWithinDays).toBe(30);
+    expect(app.discoverySearch.sort).toBe('RELEVANCE');
+  });
+
   it('hides discovered roles already recorded as applied', () => {
     const fixture = TestBed.createComponent(App);
     const app = fixture.componentInstance;
@@ -33,9 +42,12 @@ describe('App', () => {
       company: 'Example',
       title: 'Junior Developer',
       location: 'Remote',
+      countryCode: 'US',
+      workplaceType: 'REMOTE',
       description: 'Build software',
       sourceUrl: 'https://jobs.example.com/job-1',
       publishedAt: null,
+      expiresAt: null,
       experienceMin: 0,
       experienceMax: 2,
       entryLevelLikely: true

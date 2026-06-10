@@ -16,12 +16,16 @@ class ExperienceClassifierTests {
         ExperienceClassifier.ExperienceClassification senior = classifier.classify(
                 "Senior Software Engineer",
                 "Requires 5+ years of experience.");
+        ExperienceClassifier.ExperienceClassification abbreviatedSenior = classifier.classify(
+                "Sr. Forward Deployed Engineer",
+                "Join the customer engineering team.");
 
         assertThat(entry.minimumYears()).isZero();
         assertThat(entry.maximumYears()).isEqualTo(2);
         assertThat(entry.entryLevelLikely()).isTrue();
         assertThat(senior.minimumYears()).isEqualTo(5);
         assertThat(senior.entryLevelLikely()).isFalse();
+        assertThat(abbreviatedSenior.entryLevelLikely()).isFalse();
     }
 
     @Test

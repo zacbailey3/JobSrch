@@ -24,6 +24,10 @@ public class JobDiscoveryController {
             @RequestParam(required = false) String companyName,
             @RequestParam(required = false) String query,
             @RequestParam(required = false) String location,
+            @RequestParam(defaultValue = "US") String countryCode,
+            @RequestParam(required = false) WorkplaceType workplaceType,
+            @RequestParam(required = false) Integer postedWithinDays,
+            @RequestParam(defaultValue = "RELEVANCE") DiscoverySort sort,
             @RequestParam(defaultValue = "true") boolean entryLevelOnly) {
         return discoveryService.search(
                 provider,
@@ -31,6 +35,10 @@ public class JobDiscoveryController {
                 companyName,
                 query,
                 location,
+                countryCode,
+                workplaceType,
+                postedWithinDays,
+                sort,
                 entryLevelOnly);
     }
 }

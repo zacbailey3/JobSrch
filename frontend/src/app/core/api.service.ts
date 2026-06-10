@@ -97,7 +97,9 @@ export interface ResumeAnalysis {
   suggestions: string[];
 }
 
-export type JobProvider = 'GREENHOUSE' | 'LEVER';
+export type JobProvider = 'GREENHOUSE' | 'LEVER' | 'USAJOBS' | 'ADZUNA';
+export type DiscoverySort = 'RELEVANCE' | 'NEWEST';
+export type WorkplaceType = 'REMOTE' | 'HYBRID' | 'ON_SITE' | 'UNKNOWN';
 
 export interface DiscoveredJob {
   externalId: string;
@@ -105,12 +107,49 @@ export interface DiscoveredJob {
   company: string;
   title: string;
   location: string | null;
+  countryCode: string | null;
+  workplaceType: WorkplaceType;
   description: string;
   sourceUrl: string;
   publishedAt: string | null;
+  expiresAt: string | null;
   experienceMin: number | null;
   experienceMax: number | null;
   entryLevelLikely: boolean;
+}
+
+export interface SavedSearch {
+  id: string;
+  name: string;
+  query: string | null;
+  location: string | null;
+  countryCode: string | null;
+  workplaceType: WorkplaceType | null;
+  postedWithinDays: number | null;
+  entryLevelOnly: boolean;
+  alertsEnabled: boolean;
+  lastCheckedAt: string | null;
+  createdAt: string;
+}
+
+export interface SavedSearchRequest {
+  name: string;
+  query: string;
+  location: string;
+  countryCode: string;
+  workplaceType: WorkplaceType | null;
+  postedWithinDays: number | null;
+  entryLevelOnly: boolean;
+  alertsEnabled: boolean;
+}
+
+export interface SearchAlert {
+  id: string;
+  savedSearchId: string;
+  savedSearchName: string;
+  job: DiscoveredJob;
+  discoveredAt: string;
+  seen: boolean;
 }
 
 /**
@@ -190,9 +229,15 @@ export class ApiService {
     companyName: string;
     query: string;
     location: string;
+    countryCode: string;
+    workplaceType: WorkplaceType | '';
+    postedWithinDays: number | null;
+    sort: DiscoverySort;
     entryLevelOnly: boolean;
   }): Observable<DiscoveredJob[]> {
-    let params = new HttpParams().set('entryLevelOnly', search.entryLevelOnly);
+    let params = new HttpParams()
+      .set('entryLevelOnly', search.entryLevelOnly)
+      .set('sort', search.sort);
     if (search.provider) {
       params = params.set('provider', search.provider);
     }
@@ -208,6 +253,33 @@ export class ApiService {
     if (search.location.trim()) {
       params = params.set('location', search.location.trim());
     }
+    params = params.set('countryCode', search.countryCode);
+    if (search.workplaceType) {
+      params = params.set('workplaceType', search.workplaceType);
+    }
+    if (search.postedWithinDays !== null) {
+      params = params.set('postedWithinDays', search.postedWithinDays);
+    }
     return this.http.get<DiscoveredJob[]>('/api/discovery', { params });
+  }
+
+  getSavedSearches(): Observable<SavedSearch[]> {
+    return this.http.get<SavedSearch[]>('/api/saved-searches');
+  }
+
+  createSavedSearch(request: SavedSearchRequest): Observable<SavedSearch> {
+    return this.http.post<SavedSearch>('/api/saved-searches', request);
+  }
+
+  deleteSavedSearch(id: string): Observable<void> {
+    return this.http.delete<void>(`/api/saved-searches/${id}`);
+  }
+
+  getSearchAlerts(): Observable<SearchAlert[]> {
+    return this.http.get<SearchAlert[]>('/api/saved-searches/alerts');
+  }
+
+  markSearchAlertsSeen(): Observable<void> {
+    return this.http.post<void>('/api/saved-searches/alerts/seen', {});
   }
 }

@@ -31,7 +31,12 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
  * prove that a user owns a requested job, application, profile, or resume.</p>
  */
 @Configuration
-@EnableConfigurationProperties({JwtProperties.class, StorageProperties.class})
+@EnableConfigurationProperties({
+        JwtProperties.class,
+        StorageProperties.class,
+        UsaJobsProperties.class,
+        AdzunaProperties.class
+})
 public class SecurityConfig {
 
     @Bean

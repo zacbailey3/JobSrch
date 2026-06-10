@@ -23,7 +23,8 @@ public class ExperienceClassifier {
     private static final Pattern ENTRY_MARKER = Pattern.compile(
             "\\b(?:junior|entry[ -]level|associate|new grad|graduate|intern|internship|apprentice)\\b");
     private static final Pattern SENIOR_MARKER = Pattern.compile(
-            "\\b(?:senior|staff|principal|lead|manager|director|vice president|vp)\\b");
+            "(?:\\bsr\\.?(?=\\s|$|[-,/]))"
+                    + "|\\b(?:senior|staff|principal|lead|manager|director|vice president|vp)\\b");
 
     public ExperienceClassification classify(String title, String description) {
         String normalizedTitle = normalize(title);

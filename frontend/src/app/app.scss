@@ -788,6 +788,117 @@ button,
   grid-column: span 1;
 }
 
+.saved-search-workspace {
+  background: #f7f9f6;
+  border: 1px solid #e3e8e3;
+  border-radius: 14px;
+  margin-top: 1.2rem;
+  padding: 1rem;
+}
+
+.save-search-control {
+  align-items: center;
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: minmax(12rem, 1fr) minmax(12rem, 1fr) auto;
+}
+
+.save-search-control div {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.save-search-control small,
+.saved-search-chip span,
+.search-alert-list small {
+  color: #718078;
+  font-size: 0.72rem;
+}
+
+.saved-search-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.9rem;
+}
+
+.saved-search-chip {
+  align-items: stretch;
+  background: #fff;
+  border: 1px solid #dfe6df;
+  border-radius: 10px;
+  display: flex;
+  overflow: hidden;
+}
+
+.saved-search-chip button:first-child {
+  align-items: flex-start;
+  background: transparent;
+  border: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0.55rem 0.7rem;
+}
+
+.saved-search-chip .icon-button {
+  border-left: 1px solid #e5e9e5;
+  border-radius: 0;
+}
+
+.alert-heading {
+  align-items: center;
+  border-top: 1px solid #e1e6e1;
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1rem;
+  padding-top: 0.9rem;
+}
+
+.alert-heading div {
+  align-items: center;
+  display: flex;
+  gap: 0.55rem;
+}
+
+.alert-heading span {
+  background: #e2eee6;
+  border-radius: 999px;
+  color: #1f6f4a;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 0.2rem 0.45rem;
+}
+
+.search-alert-list {
+  display: grid;
+  gap: 0.45rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 0.7rem;
+}
+
+.search-alert-list a {
+  background: #fff;
+  border: 1px solid #e1e6e1;
+  border-radius: 10px;
+  color: #3f4d46;
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.65rem;
+  text-decoration: none;
+}
+
+.search-alert-list a.unread {
+  border-color: #9fcbb0;
+  box-shadow: inset 3px 0 #1f6f4a;
+}
+
+.search-alert-list span {
+  color: #1f6f4a;
+  font-size: 0.67rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
 .checkbox-control {
   align-items: center;
   display: flex;
@@ -848,6 +959,13 @@ button,
   margin: 0;
 }
 
+.freshness-date {
+  color: #718078;
+  display: block;
+  font-size: 0.72rem;
+  margin-top: 0.35rem;
+}
+
 .discovery-description {
   color: #6c7872;
   display: -webkit-box;
@@ -896,6 +1014,14 @@ button,
 
   .discovery-form {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .save-search-control {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .save-search-control div {
+    grid-column: 1 / -1;
   }
 
   .profile-heading {
@@ -962,6 +1088,11 @@ button,
   }
 
   .discovery-form {
+    grid-template-columns: 1fr;
+  }
+
+  .save-search-control,
+  .search-alert-list {
     grid-template-columns: 1fr;
   }
 

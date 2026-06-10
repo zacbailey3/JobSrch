@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.Instant;
 
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
@@ -26,12 +27,20 @@ import com.jobsrch.application.ApplicationStatus;
 import com.jobsrch.analysis.AnalysisRequest;
 import com.jobsrch.analysis.AnalysisResponse;
 import com.jobsrch.analysis.ResumeAnalysisService;
+import com.jobsrch.alert.SavedSearchAlertService;
+import com.jobsrch.alert.SavedSearchRequest;
 import com.jobsrch.auth.AuthResponse;
 import com.jobsrch.auth.AuthService;
 import com.jobsrch.auth.RegisterRequest;
 import com.jobsrch.job.JobRequest;
 import com.jobsrch.job.JobResponse;
 import com.jobsrch.job.JobService;
+import com.jobsrch.discovery.DiscoveredJob;
+import com.jobsrch.discovery.IndexedJob;
+import com.jobsrch.discovery.IndexedJobRepository;
+import com.jobsrch.discovery.JobIndexService;
+import com.jobsrch.discovery.JobProvider;
+import com.jobsrch.discovery.WorkplaceType;
 import com.jobsrch.profile.ProfileRequest;
 import com.jobsrch.profile.ProfileResponse;
 import com.jobsrch.profile.ProfileService;
@@ -62,6 +71,15 @@ class CoreWorkflowTests {
 
     @Autowired
     private ResumeAnalysisService analysisService;
+
+    @Autowired
+    private SavedSearchAlertService savedSearchAlertService;
+
+    @Autowired
+    private IndexedJobRepository indexedJobs;
+
+    @Autowired
+    private JobIndexService jobIndexService;
 
     @Test
     void userCanRegisterSaveAJobAndTrackAnApplication() {
@@ -174,6 +192,92 @@ class CoreWorkflowTests {
         assertThat(analysis.suggestions()).anyMatch(suggestion -> suggestion.contains("Spring Boot"));
 
         resumeService.delete(jwt, resume.id());
+    }
+
+    @Test
+    void savedSearchReceivesJobsAddedByALaterImport() {
+        AuthResponse auth = authService.register(new RegisterRequest(
+                "alerts@example.com",
+                "strong-password",
+                "Alert",
+                "Owner"));
+        Jwt jwt = jwtDecoder.decode(auth.accessToken());
+        var search = savedSearchAlertService.create(jwt, new SavedSearchRequest(
+                "Remote Java",
+                "java developer",
+                "Remote",
+                "US",
+                WorkplaceType.REMOTE,
+                30,
+                true,
+                true));
+
+        DiscoveredJob discovered = new DiscoveredJob(
+                "alert-1",
+                JobProvider.ADZUNA,
+                "Northstar",
+                "Junior Java Developer",
+                "Remote, US",
+                "US",
+                WorkplaceType.REMOTE,
+                "Build Java services",
+                "https://example.com/jobs/alert-1",
+                Instant.now(),
+                null,
+                0,
+                2,
+                true);
+        indexedJobs.save(new IndexedJob(
+                "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+                discovered,
+                Instant.now().plusMillis(1)));
+
+        savedSearchAlertService.refreshAll();
+
+        assertThat(savedSearchAlertService.list(jwt))
+                .singleElement()
+                .satisfies(saved -> {
+                    assertThat(saved.id()).isEqualTo(search.id());
+                    assertThat(saved.name()).isEqualTo("Remote Java");
+                    assertThat(saved.lastCheckedAt()).isAfter(search.lastCheckedAt());
+                });
+        assertThat(savedSearchAlertService.listAlerts(jwt))
+                .singleElement()
+                .satisfies(alert -> {
+                    assertThat(alert.savedSearchName()).isEqualTo("Remote Java");
+                    assertThat(alert.job().title()).isEqualTo("Junior Java Developer");
+                    assertThat(alert.seen()).isFalse();
+                });
+        savedSearchAlertService.markAllSeen(jwt);
+        assertThat(savedSearchAlertService.listAlerts(jwt).get(0).seen()).isTrue();
+    }
+
+    @Test
+    void providerLocationLongerThanLegacyLimitCanBeIndexed() {
+        String longLocation = "Atlanta, Georgia; Bellevue, Washington; "
+                + "Boston, Massachusetts; Maryland; Philadelphia, Pennsylvania; "
+                + "San Francisco, California; Seattle, Washington; "
+                + "Washington, District of Columbia; Remote, United States";
+        DiscoveredJob discovered = new DiscoveredJob(
+                "long-location",
+                JobProvider.GREENHOUSE,
+                "Example",
+                "Junior Software Engineer",
+                longLocation,
+                "US",
+                WorkplaceType.HYBRID,
+                "Build software",
+                "https://example.com/jobs/long-location",
+                Instant.now(),
+                null,
+                0,
+                2,
+                true);
+
+        jobIndexService.upsertAll(java.util.List.of(discovered));
+
+        assertThat(indexedJobs.findByActiveTrue())
+                .anySatisfy(job -> assertThat(job.getLocation()).isEqualTo(longLocation));
     }
 
     private byte[] samplePdf(String text) throws IOException {

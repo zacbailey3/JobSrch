@@ -242,12 +242,13 @@
               <p class="eyebrow">Role-first job search</p>
               <h2>Find your lane, then widen it</h2>
             </div>
-            <span>Public Greenhouse and Lever boards</span>
+            <span>US-focused public and aggregate sources</span>
           </div>
           <p class="muted">
             Start with a position, skill, location, company, or no filter at all.
             Terms such as junior and new grad guide the experience filter without
-            limiting results to those exact words.
+            limiting results to those exact words. Searches focus on recent US
+            openings by default.
           </p>
 
           <form class="discovery-form" (ngSubmit)="searchDiscovery(discoveryForm)" #discoveryForm="ngForm">
@@ -262,6 +263,36 @@
                 placeholder="Remote, New York, Chicago" />
             </label>
             <label>
+              Country
+              <select name="countryCode" [(ngModel)]="discoverySearch.countryCode">
+                <option value="US">United States</option>
+                <option value="ANY">Any country</option>
+                <option value="CA">Canada</option>
+                <option value="GB">United Kingdom</option>
+              </select>
+            </label>
+            <label>
+              Workplace
+              <select name="workplaceType" [(ngModel)]="discoverySearch.workplaceType">
+                <option value="">Remote, hybrid, or on-site</option>
+                <option value="REMOTE">Remote</option>
+                <option value="HYBRID">Hybrid</option>
+                <option value="ON_SITE">On-site</option>
+              </select>
+            </label>
+            <label>
+              Freshness
+              <select name="postedWithinDays" [(ngModel)]="discoverySearch.postedWithinDays">
+                <option [ngValue]="1">Last 24 hours</option>
+                <option [ngValue]="3">Last 3 days</option>
+                <option [ngValue]="7">Last 7 days</option>
+                <option [ngValue]="14">Last 14 days</option>
+                <option [ngValue]="30">Last 30 days</option>
+                <option [ngValue]="60">Last 60 days</option>
+                <option [ngValue]="null">Any date</option>
+              </select>
+            </label>
+            <label>
               Company
               <input name="companyName" [(ngModel)]="discoverySearch.companyName"
                 placeholder="Optional company filter" />
@@ -272,12 +303,21 @@
                 <option value="">All sources</option>
                 <option value="GREENHOUSE">Greenhouse</option>
                 <option value="LEVER">Lever</option>
+                <option value="USAJOBS">USAJOBS</option>
+                <option value="ADZUNA">Adzuna</option>
               </select>
             </label>
             <label>
               Specific board token
               <input name="companyIdentifier" [(ngModel)]="discoverySearch.companyIdentifier"
                 pattern="[A-Za-z0-9_-]*" placeholder="Optional: spotify or stripe" />
+            </label>
+            <label>
+              Sort results
+              <select name="discoverySort" [(ngModel)]="discoverySearch.sort">
+                <option value="RELEVANCE">Best match</option>
+                <option value="NEWEST">Newest first</option>
+              </select>
             </label>
             <label class="checkbox-control">
               <input type="checkbox" name="entryLevelOnly" [(ngModel)]="discoverySearch.entryLevelOnly" />
@@ -295,11 +335,61 @@
             </button>
           </form>
 
+          <div class="saved-search-workspace">
+            <div class="save-search-control">
+              <div>
+                <strong>Save these filters</strong>
+                <small>Alerts begin with jobs added after you save the search.</small>
+              </div>
+              <input [(ngModel)]="savedSearchName" name="savedSearchName"
+                maxlength="160" placeholder="e.g. Junior Java, remote US" />
+              <button class="secondary-button" type="button" (click)="saveCurrentSearch()"
+                [disabled]="loading()">Save search</button>
+            </div>
+
+            @if (savedSearches().length > 0) {
+              <div class="saved-search-list">
+                @for (search of savedSearches(); track search.id) {
+                  <div class="saved-search-chip">
+                    <button type="button" (click)="runSavedSearch(search)">
+                      <strong>{{ search.name }}</strong>
+                      <span>{{ search.query || 'All entry-level roles' }}</span>
+                    </button>
+                    <button class="icon-button" type="button" aria-label="Delete saved search"
+                      (click)="deleteSavedSearch(search.id)">x</button>
+                  </div>
+                }
+              </div>
+            }
+
+            @if (searchAlerts().length > 0) {
+              <div class="alert-heading">
+                <div>
+                  <strong>New matches</strong>
+                  <span>{{ unreadAlertCount() }} unread</span>
+                </div>
+                @if (unreadAlertCount() > 0) {
+                  <button class="text-button" type="button" (click)="markAlertsSeen()">Mark all read</button>
+                }
+              </div>
+              <div class="search-alert-list">
+                @for (alert of searchAlerts().slice(0, 6); track alert.id) {
+                  <a [href]="alert.job.sourceUrl" target="_blank" rel="noreferrer"
+                    [class.unread]="!alert.seen">
+                    <span>{{ alert.savedSearchName }}</span>
+                    <strong>{{ alert.job.title }}</strong>
+                    <small>{{ alert.job.company }} - {{ alert.discoveredAt | date:'mediumDate' }}</small>
+                  </a>
+                }
+              </div>
+            }
+          </div>
+
           @if (discoverySearched() && discoveryResults().length > 0) {
             <div class="result-summary">
               <strong>{{ visibleDiscoveryResults().length }} positions</strong>
               <span>
-                Ranked by role relevance
+                {{ discoverySearch.sort === 'NEWEST' ? 'Newest first' : 'Ranked by role relevance' }}
                 @if (hiddenAppliedCount() > 0) {
                   - {{ hiddenAppliedCount() }} already applied hidden
                 }
@@ -312,9 +402,13 @@
               <article class="discovery-card">
                 <div>
                   <div class="job-tags">
-                    <span>{{ job.provider === 'GREENHOUSE' ? 'Greenhouse' : 'Lever' }}</span>
+                    <span>{{ providerLabel(job.provider) }}</span>
                     @if (job.entryLevelLikely) {
                       <span>Entry-level likely</span>
+                    }
+                    <span>{{ countryLabel(job.countryCode) }}</span>
+                    @if (job.workplaceType !== 'UNKNOWN') {
+                      <span>{{ workplaceLabel(job.workplaceType) }}</span>
                     }
                     @if (hasAppliedToJob(job)) {
                       <span class="applied-tag">Already applied</span>
@@ -325,6 +419,9 @@
                   </div>
                   <h3>{{ job.title }}</h3>
                   <p class="discovery-company">{{ job.company }} @if (job.location) { - {{ job.location }} }</p>
+                  @if (job.publishedAt) {
+                    <small class="freshness-date">Fresh as of {{ job.publishedAt | date:'mediumDate' }}</small>
+                  }
                   <p class="discovery-description">{{ job.description }}</p>
                 </div>
                 <div class="discovery-actions">

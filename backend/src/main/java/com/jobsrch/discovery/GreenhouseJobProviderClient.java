@@ -57,17 +57,31 @@ public class GreenhouseJobProviderClient implements JobProviderClient {
 
     private DiscoveredJob toDiscoveredJob(GreenhouseJob job, String companyName) {
         String description = ProviderSupport.plainText(job.content());
+        String location = job.location() == null ? null : job.location().name();
+        String officeLocations = job.offices() == null
+                ? ""
+                : job.offices().stream()
+                        .map(GreenhouseOffice::location)
+                        .filter(value -> value != null && !value.isBlank())
+                        .reduce("", (left, right) -> left + " " + right);
         ExperienceClassifier.ExperienceClassification experience =
                 classifier.classify(job.title(), description);
+        String countryCode = ProviderSupport.inferCountryCode(location);
+        if (countryCode == null) {
+            countryCode = ProviderSupport.inferCountryCode(officeLocations);
+        }
         return new DiscoveredJob(
                 Long.toString(job.id()),
                 provider(),
                 companyName,
                 job.title(),
-                job.location() == null ? null : job.location().name(),
+                location,
+                countryCode,
+                ProviderSupport.inferWorkplaceType(location, description),
                 description,
                 job.absoluteUrl(),
                 ProviderSupport.parseInstant(job.updatedAt()),
+                null,
                 experience.minimumYears(),
                 experience.maximumYears(),
                 experience.entryLevelLikely());
@@ -81,10 +95,14 @@ public class GreenhouseJobProviderClient implements JobProviderClient {
             String title,
             GreenhouseLocation location,
             String content,
+            List<GreenhouseOffice> offices,
             @JsonProperty("absolute_url") String absoluteUrl,
             @JsonProperty("updated_at") String updatedAt) {
     }
 
     private record GreenhouseLocation(String name) {
+    }
+
+    private record GreenhouseOffice(String location) {
     }
 }

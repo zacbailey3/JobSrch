@@ -47,17 +47,37 @@ Query parameters:
 
 | Name | Required | Description |
 | --- | --- | --- |
-| `provider` | No | `GREENHOUSE` or `LEVER`; omitted searches both |
+| `provider` | No | `GREENHOUSE`, `LEVER`, `USAJOBS`, or `ADZUNA`; omitted searches all indexed sources |
 | `companyIdentifier` | No | Board token/site name; omitted uses the starter catalog |
 | `companyName` | No | Company filter, or display name for a direct board |
 | `query` | No | Broad role/skill terms ranked by relevance |
 | `location` | No | Case-insensitive location filter |
+| `countryCode` | No | Defaults to `US`; use `ANY` to disable country filtering |
+| `workplaceType` | No | `REMOTE`, `HYBRID`, or `ON_SITE` |
+| `postedWithinDays` | No | Freshness window from 1 to 60 days |
+| `sort` | No | `RELEVANCE` (default) or `NEWEST` |
 | `entryLevelOnly` | No | Defaults to `true`; excludes clearly senior or 4+ year roles |
 
-Results are fetched on demand and are not saved until the user chooses
-**Save role**. All fields are optional, and a blank search browses likely
-entry-level openings from the starter catalog. The API returns at most 100
-normalized postings per request.
+Scheduled imports populate a shared provider-neutral index. A broad search uses
+that index and performs an initial live fetch only when no indexed coverage is
+available. A direct Greenhouse or Lever board token always performs a targeted
+live request. The API returns at most 100 normalized postings, with no more
+than five results from one company.
+
+## Saved searches and alerts
+
+| Method | Route | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/saved-searches` | List the authenticated user's filters |
+| `POST` | `/api/saved-searches` | Save filters and enable future-match alerts |
+| `DELETE` | `/api/saved-searches/{id}` | Delete a user-owned saved search |
+| `GET` | `/api/saved-searches/alerts` | List imported matches for the user |
+| `POST` | `/api/saved-searches/alerts/seen` | Mark all of the user's matches read |
+
+Saved-search fields: `name`, `query`, `location`, `countryCode`,
+`workplaceType`, `postedWithinDays`, `entryLevelOnly`, and `alertsEnabled`.
+Existing indexed jobs form the baseline; alerts are created only for matching
+jobs first seen during a later import.
 
 ## Applications
 

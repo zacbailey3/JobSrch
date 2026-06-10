@@ -18,3 +18,5 @@ jobsrch:
     ttl: PT1H
   storage:
     resume-directory: ${java.io.tmpdir}/jobsrch-test-resumes
+  import:
+    enabled: false

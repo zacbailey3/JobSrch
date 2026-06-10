@@ -8,9 +8,12 @@ public record DiscoveredJob(
         String company,
         String title,
         String location,
+        String countryCode,
+        WorkplaceType workplaceType,
         String description,
         String sourceUrl,
         Instant publishedAt,
+        Instant expiresAt,
         Integer experienceMin,
         Integer experienceMax,
         boolean entryLevelLikely) {

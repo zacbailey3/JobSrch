@@ -56,6 +56,9 @@ Flyway owns the database schema:
 
 - `V1__initial_schema.sql`: users, saved jobs, and applications
 - `V2__profile_and_resume.sql`: career profiles and resume metadata
+- `V3__job_index_and_saved_searches.sql`: indexed provider jobs, saved filters,
+  and alert matches
+- `V4__expand_indexed_job_location.sql`: room for multi-office provider labels
 
 Never edit an applied migration. Add `V3__description.sql`, then `V4`, and so
 on. Hibernate uses `ddl-auto: validate`, which checks entity mappings against
@@ -119,28 +122,35 @@ centralized.
 
 ## External job sources
 
-Greenhouse and Lever are implemented as on-demand adapters behind
-`JobProviderClient`. Each adapter maps its provider response into the same
-`DiscoveredJob` contract, so filtering and the Angular UI do not depend on a
-provider's JSON shape.
+Greenhouse and Lever company boards use `JobProviderClient`. USAJOBS and
+Adzuna use `AggregateJobProviderClient` and are enabled only when credentials
+are configured. Every adapter maps into the same `DiscoveredJob` contract, so
+filtering and the Angular UI do not depend on a provider's JSON shape.
 
 ```text
 GET /api/discovery
   -> JobDiscoveryService
-  -> direct board request or JobBoardCatalog starter sources
-  -> provider selected from the JobProviderClient registry
-  -> fixed Greenhouse or Lever API host
-  -> normalized DiscoveredJob results
-  -> optional company, location, role, and entry-level filters
+  -> active IndexedJob rows
+  -> initial live provider request when the index has no matching coverage
+  -> normalized DiscoveredJob results from all enabled sources
+  -> normalized country, workplace, and source freshness metadata
+  -> optional company, location, country, workplace, freshness, and entry-level filters
   -> broad relevance ranking with title matches weighted highest
+  -> maximum five results per company
 ```
 
-`JobBoardCatalog` supplies an explicit starter set of public boards when the
-candidate searches by role rather than company. A direct board token remains
-optional for targeted searching. Provider hosts are fixed in code, identifiers
-allow only letters, numbers, hyphens, and underscores, and requests have
-connection/read timeouts. These constraints prevent the endpoint from becoming
-a general-purpose server-side URL fetcher.
+`JobImportService` refreshes the curated US employer catalog and enabled
+aggregate sources on a fixed delay. `JobIndexService` hashes normalized source
+URLs with SHA-256 for compact cross-provider deduplication. Jobs become
+inactive when their provider expiration passes or no provider has returned
+them within the configured stale window.
+
+`JobBoardCatalog` supplies an explicit set of public company boards. A direct
+board token remains optional for targeted Greenhouse or Lever searching.
+Provider hosts are fixed in code, identifiers allow only letters, numbers,
+hyphens, and underscores, and requests have connection/read timeouts. These
+constraints prevent the endpoint from becoming a general-purpose server-side
+URL fetcher.
 
 Career-stage terms such as "junior" and "new grad" are removed from relevance
 terms because `ExperienceClassifier` already handles that intent. Remaining
@@ -148,16 +158,36 @@ terms use broad OR matching, with title matches weighted above company,
 location, and description matches. This avoids requiring a posting to use the
 candidate's exact phrase.
 
-Discovery results are transient. A posting enters JobSrch's database only when
-the user saves it, at which point the existing saved-job ownership rules apply.
-The deterministic `ExperienceClassifier` hides clearly senior titles and roles
-whose stated experience exceeds three years. Unknown experience is shown as
-"entry-level likely," not asserted as a fact.
+Discovery defaults to country code `US` and the most recent 30 days. Lever
+provides an ISO country code and workplace type directly. Greenhouse country
+and workplace values are inferred conservatively from the posting and office
+locations; unknown values remain unknown instead of being assumed to be US.
+The country selector can be changed to `ANY` when the candidate intentionally
+wants a global search.
+
+Provider date fields are normalized as `publishedAt`, but the interface labels
+them as freshness because Greenhouse exposes `updated_at`, which may represent
+an edit rather than the original publication date. Selecting a freshness
+window excludes results whose provider does not supply a date.
+
+Indexed jobs are shared search data and do not belong to a user. A posting
+enters a user's shortlist only when the user chooses **Save role**, at which
+point the existing saved-job ownership rules apply. The deterministic
+`ExperienceClassifier` hides clearly senior titles and roles whose stated
+experience exceeds three years. Unknown experience is shown as "entry-level
+likely," not asserted as a fact.
+
+Saved searches are user-owned filter snapshots. Each search records the import
+time at creation. After a refresh, `SavedSearchAlertService` compares jobs first
+seen since the previous check and stores unique matches in
+`search_alert_matches`. This keeps alerts incremental and avoids presenting the
+entire existing index as new.
 
 The browser compares normalized source URLs, falling back to normalized company
 and title, to hide discovery results already recorded with an application
 status other than `SAVED`. This presentation filter reacts whenever application
 data changes; it does not remove provider results or alter application history.
 
-USAJOBS can be added later through the same provider interface. Do not scrape
-LinkedIn or Indeed.
+Do not scrape LinkedIn or Indeed. Additional sources should use documented
+APIs or employer-owned public job-board endpoints and map into
+`DiscoveredJob`.
