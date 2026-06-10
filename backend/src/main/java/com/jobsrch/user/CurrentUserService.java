@@ -2,8 +2,8 @@ package com.jobsrch.user;
 
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
-
-import com.jobsrch.common.NotFoundException;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class CurrentUserService {
@@ -22,6 +22,8 @@ public class CurrentUserService {
      */
     public UserAccount requireUser(Jwt jwt) {
         return users.findByEmailIgnoreCase(jwt.getSubject())
-                .orElseThrow(() -> new NotFoundException("Authenticated user no longer exists"));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED,
+                        "Your session is no longer valid. Please sign in again."));
     }
 }

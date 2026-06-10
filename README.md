@@ -6,7 +6,7 @@ experience.
 
 ## Stack
 
-- Java 17 and Spring Boot 4
+- Java 25 LTS and Spring Boot 4
 - Angular 21
 - MySQL 8.4 with Flyway migrations
 - JWT email/password authentication
