@@ -1,0 +1,20 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:jobsrch;MODE=MySQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+
+jobsrch:
+  jwt:
+    issuer: jobsrch-test
+    secret: test-secret-that-is-at-least-thirty-two-bytes-long
+    ttl: PT1H
+  storage:
+    resume-directory: ${java.io.tmpdir}/jobsrch-test-resumes

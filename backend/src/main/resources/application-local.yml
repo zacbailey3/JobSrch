@@ -1,0 +1,10 @@
+spring:
+  datasource:
+    url: jdbc:h2:file:./data/jobsrch;MODE=MySQL;AUTO_SERVER=TRUE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+jobsrch:
+  jwt:
+    secret: local-development-secret-that-is-at-least-32-bytes
