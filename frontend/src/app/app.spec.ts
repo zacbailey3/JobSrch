@@ -34,6 +34,29 @@ describe('App', () => {
     expect(app.discoverySearch.maximumExperience).toBe(3);
   });
 
+  it('keeps the discovery form focused on non-redundant filters', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    const app = fixture.componentInstance;
+    app.auth.session.set({
+      accessToken: 'test-token',
+      expiresIn: 3600,
+      userId: 'test-user',
+      email: 'student@example.com',
+      firstName: 'Student',
+      lastName: 'Developer'
+    });
+    app.view.set('discover');
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('[name="careerStage"]')).toBeNull();
+    expect(compiled.querySelector('[name="degreeRequirement"]')).toBeNull();
+    expect(compiled.querySelector('[name="sponsorshipStatus"]')).toBeNull();
+    expect(compiled.querySelector('[name="companyIdentifier"]')).toBeNull();
+    expect(compiled.querySelector('[name="maximumExperience"]')).not.toBeNull();
+  });
+
   it('starts a manual application as applied and awaiting response', () => {
     const fixture = TestBed.createComponent(App);
     const app = fixture.componentInstance;

@@ -292,17 +292,6 @@
               </select>
             </label>
             <label>
-              Career stage
-              <select name="careerStage" [(ngModel)]="discoverySearch.careerStage">
-                <option value="">Any early-career stage</option>
-                <option value="NEW_GRAD">New graduate</option>
-                <option value="ENTRY_LEVEL">Explicitly entry-level</option>
-                <option value="EARLY_CAREER">Early-career likely</option>
-                <option value="INTERNSHIP">Internship</option>
-                <option value="APPRENTICESHIP">Apprenticeship</option>
-              </select>
-            </label>
-            <label>
               Maximum stated experience
               <select name="maximumExperience" [(ngModel)]="discoverySearch.maximumExperience">
                 <option [ngValue]="0">No experience required</option>
@@ -310,25 +299,6 @@
                 <option [ngValue]="2">Up to 2 years</option>
                 <option [ngValue]="3">Up to 3 years</option>
                 <option [ngValue]="null">Any or unstated</option>
-              </select>
-            </label>
-            <label>
-              Degree language
-              <select name="degreeRequirement" [(ngModel)]="discoverySearch.degreeRequirement">
-                <option value="">Any degree requirement</option>
-                <option value="NO_DEGREE_REQUIRED">No degree or equivalent experience accepted</option>
-                <option value="DEGREE_PREFERRED">Degree preferred</option>
-                <option value="BACHELORS_REQUIRED">Bachelor's required</option>
-                <option value="NOT_STATED">Not stated</option>
-              </select>
-            </label>
-            <label>
-              Visa sponsorship
-              <select name="sponsorshipStatus" [(ngModel)]="discoverySearch.sponsorshipStatus">
-                <option value="">Any sponsorship status</option>
-                <option value="AVAILABLE">Available</option>
-                <option value="NOT_AVAILABLE">Not available</option>
-                <option value="NOT_STATED">Not stated</option>
               </select>
             </label>
             <label>
@@ -357,11 +327,6 @@
                 <option value="USAJOBS">USAJOBS</option>
                 <option value="ADZUNA">Adzuna</option>
               </select>
-            </label>
-            <label>
-              Specific board token
-              <input name="companyIdentifier" [(ngModel)]="discoverySearch.companyIdentifier"
-                pattern="[A-Za-z0-9_-]*" placeholder="Optional: spotify or stripe" />
             </label>
             <label>
               Sort results

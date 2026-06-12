@@ -263,7 +263,6 @@ export class ApiService {
 
   discoverJobs(search: {
     provider: JobProvider | '';
-    companyIdentifier: string;
     companyName: string;
     query: string;
     location: string;
@@ -273,9 +272,6 @@ export class ApiService {
     sort: DiscoverySort;
     entryLevelOnly: boolean;
     opportunityType: OpportunityType | '';
-    careerStage: CareerStage | '';
-    degreeRequirement: DegreeRequirement | '';
-    sponsorshipStatus: SponsorshipStatus | '';
     maximumExperience: number | null;
   }): Observable<DiscoveredJob[]> {
     let params = new HttpParams()
@@ -283,9 +279,6 @@ export class ApiService {
       .set('sort', search.sort);
     if (search.provider) {
       params = params.set('provider', search.provider);
-    }
-    if (search.companyIdentifier.trim()) {
-      params = params.set('companyIdentifier', search.companyIdentifier.trim());
     }
     if (search.companyName.trim()) {
       params = params.set('companyName', search.companyName.trim());
@@ -305,15 +298,6 @@ export class ApiService {
     }
     if (search.opportunityType) {
       params = params.set('opportunityType', search.opportunityType);
-    }
-    if (search.careerStage) {
-      params = params.set('careerStage', search.careerStage);
-    }
-    if (search.degreeRequirement) {
-      params = params.set('degreeRequirement', search.degreeRequirement);
-    }
-    if (search.sponsorshipStatus) {
-      params = params.set('sponsorshipStatus', search.sponsorshipStatus);
     }
     if (search.maximumExperience !== null) {
       params = params.set('maximumExperience', search.maximumExperience);

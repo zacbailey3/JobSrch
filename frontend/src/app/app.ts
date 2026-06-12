@@ -150,7 +150,6 @@ export class App implements OnInit {
   savedSearchName = '';
   discoverySearch: {
     provider: JobProvider | '';
-    companyIdentifier: string;
     companyName: string;
     query: string;
     location: string;
@@ -160,13 +159,9 @@ export class App implements OnInit {
     sort: DiscoverySort;
     entryLevelOnly: boolean;
     opportunityType: OpportunityType | '';
-    careerStage: CareerStage | '';
-    degreeRequirement: DegreeRequirement | '';
-    sponsorshipStatus: SponsorshipStatus | '';
     maximumExperience: number | null;
   } = {
     provider: '',
-    companyIdentifier: '',
     companyName: '',
     query: '',
     location: '',
@@ -176,9 +171,6 @@ export class App implements OnInit {
     sort: 'RELEVANCE',
     entryLevelOnly: true,
     opportunityType: '',
-    careerStage: '',
-    degreeRequirement: '',
-    sponsorshipStatus: '',
     maximumExperience: 3
   };
 
@@ -287,9 +279,9 @@ export class App implements OnInit {
       postedWithinDays: this.discoverySearch.postedWithinDays,
       entryLevelOnly: this.discoverySearch.entryLevelOnly,
       opportunityType: this.discoverySearch.opportunityType || null,
-      careerStage: this.discoverySearch.careerStage || null,
-      degreeRequirement: this.discoverySearch.degreeRequirement || null,
-      sponsorshipStatus: this.discoverySearch.sponsorshipStatus || null,
+      careerStage: null,
+      degreeRequirement: null,
+      sponsorshipStatus: null,
       maximumExperience: this.discoverySearch.maximumExperience,
       alertsEnabled: true
     };
@@ -309,7 +301,6 @@ export class App implements OnInit {
     this.discoverySearch = {
       ...this.discoverySearch,
       provider: '',
-      companyIdentifier: '',
       companyName: '',
       query: search.query ?? '',
       location: search.location ?? '',
@@ -319,9 +310,6 @@ export class App implements OnInit {
       sort: 'RELEVANCE',
       entryLevelOnly: search.entryLevelOnly,
       opportunityType: search.opportunityType ?? '',
-      careerStage: search.careerStage ?? '',
-      degreeRequirement: search.degreeRequirement ?? '',
-      sponsorshipStatus: search.sponsorshipStatus ?? '',
       maximumExperience: search.maximumExperience
     };
     this.executeDiscoverySearch();
