@@ -1,0 +1,43 @@
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-jobsrch}
+      MYSQL_USER: ${DB_USERNAME:-jobsrch}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-jobsrch}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-jobsrch-root}
+    volumes:
+      - jobsrch-mysql-prod:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-jobsrch-root}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build:
+      context: ./backend
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-jobsrch}?createDatabaseIfNotExist=true
+      DB_USERNAME: ${DB_USERNAME:-jobsrch}
+      DB_PASSWORD: ${DB_PASSWORD:-jobsrch}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in your .env file}
+      RESUME_DIRECTORY: /app/data/resumes
+      PORT: 8080
+    volumes:
+      - jobsrch-resumes:/app/data/resumes
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    depends_on:
+      - backend
+
+volumes:
+  jobsrch-mysql-prod:
+  jobsrch-resumes:
