@@ -1,6 +1,7 @@
 package com.jobsrch;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -31,6 +32,11 @@ import com.jobsrch.alert.SavedSearchAlertService;
 import com.jobsrch.alert.SavedSearchRequest;
 import com.jobsrch.auth.AuthResponse;
 import com.jobsrch.auth.AuthService;
+import com.jobsrch.auth.LoginRequest;
+import com.jobsrch.auth.PasswordResetConfirmRequest;
+import com.jobsrch.auth.PasswordResetRequest;
+import com.jobsrch.auth.PasswordResetResponse;
+import com.jobsrch.auth.PasswordResetService;
 import com.jobsrch.auth.RegisterRequest;
 import com.jobsrch.job.JobRequest;
 import com.jobsrch.job.JobResponse;
@@ -58,6 +64,9 @@ class CoreWorkflowTests {
     private AuthService authService;
 
     @Autowired
+    private PasswordResetService passwordResetService;
+
+    @Autowired
     private JwtDecoder jwtDecoder;
 
     @Autowired
@@ -83,6 +92,32 @@ class CoreWorkflowTests {
 
     @Autowired
     private JobIndexService jobIndexService;
+
+    @Test
+    void userCanResetPasswordWithAOneTimeToken() {
+        authService.register(new RegisterRequest(
+                "reset@example.com",
+                "old-password",
+                "Reset",
+                "User"));
+
+        PasswordResetResponse reset = passwordResetService.requestReset(
+                new PasswordResetRequest("reset@example.com"));
+        assertThat(reset.developmentResetToken()).isNotBlank();
+
+        passwordResetService.resetPassword(new PasswordResetConfirmRequest(
+                reset.developmentResetToken(),
+                "new-password"));
+
+        assertThat(authService.login(new LoginRequest(
+                "reset@example.com",
+                "new-password")).accessToken()).isNotBlank();
+        assertThatThrownBy(() -> passwordResetService.resetPassword(
+                new PasswordResetConfirmRequest(
+                        reset.developmentResetToken(),
+                        "another-password")))
+                .hasMessageContaining("invalid or has expired");
+    }
 
     @Test
     void userCanRegisterSaveAJobAndTrackAnApplication() {

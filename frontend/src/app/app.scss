@@ -123,6 +123,12 @@
   margin: 0 0 1.8rem;
 }
 
+.auth-description {
+  color: #66736c;
+  line-height: 1.55;
+  margin: -0.8rem 0 1.4rem;
+}
+
 form {
   display: grid;
   gap: 1rem;
@@ -213,6 +219,10 @@ button,
 .text-button {
   display: block;
   margin: 1.2rem auto 0;
+}
+
+.compact-text-button {
+  margin-top: 0.8rem;
 }
 
 .ghost-button {

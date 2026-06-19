@@ -65,4 +65,8 @@ public class UserAccount {
     public String getLastName() {
         return lastName;
     }
+
+    public void updatePasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
 }

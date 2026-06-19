@@ -24,6 +24,18 @@ describe('App', () => {
     expect(compiled.textContent).toContain('JobSrch');
   });
 
+  it('shows the password recovery form from sign in', () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+
+    app.showForgotPassword();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.textContent).toContain('Reset your password');
+    expect(compiled.querySelector('[name="resetEmail"]')).not.toBeNull();
+  });
+
   it('starts discovery with US and recent-job defaults', () => {
     const fixture = TestBed.createComponent(App);
     const app = fixture.componentInstance;

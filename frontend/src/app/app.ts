@@ -71,7 +71,7 @@ function switchWorkplaceLabel(workplaceType: WorkplaceType): string {
   styleUrl: './app.scss'
 })
 export class App implements OnInit {
-  readonly authMode = signal<'login' | 'register'>('login');
+  readonly authMode = signal<'login' | 'register' | 'forgot' | 'reset'>('login');
   readonly view = signal<WorkspaceView>('dashboard');
   readonly loading = signal(false);
   readonly error = signal('');
@@ -144,6 +144,13 @@ export class App implements OnInit {
     lastName: ''
   };
 
+  passwordReset = {
+    email: '',
+    token: '',
+    password: '',
+    confirmPassword: ''
+  };
+
   newJob: JobRequest = this.emptyJob();
   newApplication: ApplicationRequest = this.emptyApplication();
   profile: CareerProfile = { ...EMPTY_PROFILE };
@@ -203,6 +210,61 @@ export class App implements OnInit {
   toggleAuthMode(): void {
     this.error.set('');
     this.authMode.update(mode => mode === 'login' ? 'register' : 'login');
+  }
+
+  showForgotPassword(): void {
+    this.error.set('');
+    this.success.set('');
+    this.passwordReset.email = this.credentials.email;
+    this.authMode.set('forgot');
+  }
+
+  showLogin(): void {
+    this.error.set('');
+    this.success.set('');
+    this.authMode.set('login');
+  }
+
+  requestPasswordReset(): void {
+    this.beginRequest();
+    this.auth.requestPasswordReset(this.passwordReset.email).subscribe({
+      next: response => {
+        this.loading.set(false);
+        this.success.set(response.message);
+        if (response.developmentResetToken) {
+          this.passwordReset.token = response.developmentResetToken;
+          this.authMode.set('reset');
+        }
+      },
+      error: error => this.handleError(error)
+    });
+  }
+
+  submitPasswordReset(): void {
+    if (this.passwordReset.password !== this.passwordReset.confirmPassword) {
+      this.error.set('Passwords must match.');
+      return;
+    }
+    this.beginRequest();
+    this.auth.resetPassword(
+      this.passwordReset.token,
+      this.passwordReset.password
+    ).subscribe({
+      next: () => {
+        this.loading.set(false);
+        this.credentials.email = this.passwordReset.email;
+        this.credentials.password = '';
+        this.passwordReset = {
+          email: '',
+          token: '',
+          password: '',
+          confirmPassword: ''
+        };
+        this.authMode.set('login');
+        this.success.set('Password updated. Sign in with your new password.');
+      },
+      error: error => this.handleError(error)
+    });
   }
 
   selectView(view: WorkspaceView): void {

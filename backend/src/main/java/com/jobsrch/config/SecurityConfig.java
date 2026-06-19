@@ -18,6 +18,7 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -33,6 +34,8 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @Configuration
 @EnableConfigurationProperties({
         JwtProperties.class,
+        PasswordResetProperties.class,
+        CorsProperties.class,
         StorageProperties.class,
         UsaJobsProperties.class,
         AdzunaProperties.class
@@ -41,6 +44,7 @@ public class SecurityConfig {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        DefaultBearerTokenResolver bearerTokenResolver = new DefaultBearerTokenResolver();
         return http
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
@@ -48,7 +52,12 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**", "/actuator/health").permitAll()
                         .anyRequest().authenticated())
-                .oauth2ResourceServer(oauth -> oauth.jwt(Customizer.withDefaults()))
+                .oauth2ResourceServer(oauth -> oauth
+                        .bearerTokenResolver(request ->
+                                request.getServletPath().startsWith("/api/auth/")
+                                        ? null
+                                        : bearerTokenResolver.resolve(request))
+                        .jwt(Customizer.withDefaults()))
                 .build();
     }
 
@@ -70,10 +79,9 @@ public class SecurityConfig {
     }
 
     @Bean
-    CorsConfigurationSource corsConfigurationSource() {
+    CorsConfigurationSource corsConfigurationSource(CorsProperties properties) {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.addAllowedOrigin("http://localhost:4200");
-        configuration.addAllowedOrigin("http://127.0.0.1:4200");
+        properties.allowedOrigins().forEach(configuration::addAllowedOrigin);
         configuration.addAllowedHeader("*");
         configuration.addAllowedMethod("*");
         configuration.setAllowCredentials(true);

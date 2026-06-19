@@ -18,6 +18,12 @@ export interface RegisterRequest {
   lastName: string;
 }
 
+export interface PasswordResetResponse {
+  message: string;
+  developmentResetToken: string | null;
+  expiresAt: string | null;
+}
+
 /**
  * Owns the browser session and persists the JWT between page refreshes.
  *
@@ -41,6 +47,14 @@ export class AuthService {
     return this.http.post<AuthResponse>('/api/auth/register', request).pipe(
       tap(session => this.storeSession(session))
     );
+  }
+
+  requestPasswordReset(email: string): Observable<PasswordResetResponse> {
+    return this.http.post<PasswordResetResponse>('/api/auth/password-reset/request', { email });
+  }
+
+  resetPassword(token: string, password: string): Observable<void> {
+    return this.http.post<void>('/api/auth/password-reset/confirm', { token, password });
   }
 
   token(): string | null {

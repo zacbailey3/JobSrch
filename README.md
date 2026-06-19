@@ -100,6 +100,8 @@ The defaults are suitable only for local development. Deployments should set:
 | `DB_USERNAME` | MySQL application user |
 | `DB_PASSWORD` | MySQL application password |
 | `JWT_SECRET` | Secret of at least 32 bytes used to sign tokens |
+| `PASSWORD_RESET_EXPOSE_TOKEN` | Shows reset codes in the UI for local development; set to `false` before public deployment |
+| `CORS_ALLOWED_ORIGINS` | Comma-separated frontend origins allowed to call the API |
 | `RESUME_DIRECTORY` | Persistent private directory for uploaded resumes |
 | `PORT` | API port, default `8080` |
 | `USAJOBS_EMAIL` | Email registered with the optional USAJOBS API |

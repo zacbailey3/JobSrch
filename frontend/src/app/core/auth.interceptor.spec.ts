@@ -48,4 +48,39 @@ describe('authInterceptor', () => {
     expect(auth.session()).toBeNull();
     expect(localStorage.getItem('jobsrch-session')).toBeNull();
   });
+
+  it('does not attach a stored token to authentication requests', () => {
+    http.post('/api/auth/register', {
+      email: 'new@example.com',
+      password: 'password123',
+      firstName: 'New',
+      lastName: 'User'
+    }).subscribe();
+
+    const request = httpTesting.expectOne('/api/auth/register');
+    expect(request.request.headers.has('Authorization')).toBe(false);
+    request.flush({
+      accessToken: 'new-token',
+      expiresIn: 3600,
+      userId: 'user-2',
+      email: 'new@example.com',
+      firstName: 'New',
+      lastName: 'User'
+    });
+  });
+
+  it('does not attach a stored token to absolute authentication URLs', () => {
+    http.post('http://localhost:8080/api/auth/password-reset/request', {
+      email: 'new@example.com'
+    }).subscribe();
+
+    const request = httpTesting.expectOne(
+      'http://localhost:8080/api/auth/password-reset/request');
+    expect(request.request.headers.has('Authorization')).toBe(false);
+    request.flush({
+      message: 'Reset instructions are available.',
+      developmentResetToken: null,
+      expiresAt: null
+    });
+  });
 });

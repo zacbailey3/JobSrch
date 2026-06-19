@@ -16,6 +16,12 @@ jobsrch:
     issuer: jobsrch-test
     secret: test-secret-that-is-at-least-thirty-two-bytes-long
     ttl: PT1H
+  password-reset:
+    ttl: PT15M
+    expose-development-token: true
+  cors:
+    allowed-origins:
+      - http://localhost:4200
   storage:
     resume-directory: ${java.io.tmpdir}/jobsrch-test-resumes
   import:
