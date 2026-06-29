@@ -16,7 +16,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.security.oauth2.jwt.Jwt;
 
-import com.jobsrch.discovery.JobBoardCatalog.JobBoard;
 import com.jobsrch.profile.ProfileResponse;
 import com.jobsrch.profile.ProfileService;
 
@@ -29,8 +28,6 @@ public class JobDiscoveryService {
             "entry", "junior", "jr", "graduate", "grad", "new", "intern");
 
     private final Map<JobProvider, JobProviderClient> clients;
-    private final Map<JobProvider, AggregateJobProviderClient> aggregateClients;
-    private final JobBoardCatalog catalog;
     private final JobIndexService index;
     private final JobInsightClassifier insights;
     private final CandidateMatchExplainer matchExplainer;
@@ -38,27 +35,21 @@ public class JobDiscoveryService {
 
     public JobDiscoveryService(
             List<JobProviderClient> clients,
-            List<AggregateJobProviderClient> aggregateClients,
-            JobBoardCatalog catalog,
             JobIndexService index,
             JobInsightClassifier insights,
             CandidateMatchExplainer matchExplainer,
             ProfileService profiles) {
         this.clients = new EnumMap<>(JobProvider.class);
-        this.aggregateClients = new EnumMap<>(JobProvider.class);
-        this.catalog = catalog;
         this.index = index;
         this.insights = insights;
         this.matchExplainer = matchExplainer;
         this.profiles = profiles;
         clients.forEach(client -> this.clients.put(client.provider(), client));
-        aggregateClients.forEach(client -> this.aggregateClients.put(client.provider(), client));
     }
 
     /**
-     * Combines indexed and targeted live provider results, then applies broad
-     * candidate-focused filters. With no company identifier, the shared index
-     * supplies sources; a supplied identifier preserves direct board lookup.
+     * Searches the shared local index for normal role searches. A supplied
+     * company identifier preserves direct live board lookup for targeted checks.
      */
     public List<DiscoveredJob> search(
             Jwt jwt,
@@ -117,9 +108,6 @@ public class JobDiscoveryService {
         validatePostedWithinDays(postedWithinDays);
         validateMaximumExperience(maximumExperience);
         boolean directBoardSearch = companyIdentifier != null && !companyIdentifier.isBlank();
-        List<JobBoard> boards = directBoardSearch
-                ? directBoards(provider, companyIdentifier, companyName)
-                : catalog.list(provider);
         List<String> queryTerms = queryTerms(query);
 
         Map<String, DiscoveredJob> uniqueJobs = new LinkedHashMap<>();
@@ -129,26 +117,18 @@ public class JobDiscoveryService {
                 .filter(job -> provider == null || job.provider() == provider)
                 .forEach(job -> uniqueJobs.putIfAbsent(uniqueKey(job), job));
 
-        List<DiscoveredJob> liveJobs = new ArrayList<>();
-        boolean hasIndexedCoverage = indexedJobs.stream()
-                .anyMatch(job -> provider == null || job.getProvider() == provider);
-        if (directBoardSearch || !hasIndexedCoverage) {
+        if (directBoardSearch) {
+            List<DirectBoard> boards = directBoards(provider, companyIdentifier, companyName);
+            List<DiscoveredJob> liveJobs = new ArrayList<>();
             boards.parallelStream().forEach(board -> {
                 List<DiscoveredJob> fetched = fetchBoard(board);
                 synchronized (liveJobs) {
                     liveJobs.addAll(fetched);
                 }
             });
+            index.upsertAll(liveJobs);
+            liveJobs.forEach(job -> uniqueJobs.putIfAbsent(uniqueKey(job), job));
         }
-        if (!directBoardSearch && !hasIndexedCoverage) {
-            aggregateClients.values().stream()
-                    .filter(AggregateJobProviderClient::enabled)
-                    .filter(client -> provider == null || client.provider() == provider)
-                    .forEach(client -> liveJobs.addAll(
-                            client.search(query, location, postedWithinDays)));
-        }
-        index.upsertAll(liveJobs);
-        liveJobs.forEach(job -> uniqueJobs.putIfAbsent(uniqueKey(job), job));
 
         List<ScoredJob> matches = uniqueJobs.values().stream()
                 .map(insights::enrich)
@@ -246,18 +226,18 @@ public class JobDiscoveryService {
                 : byRelevance.thenComparing(byNewest);
     }
 
-    private List<JobBoard> directBoards(
+    private List<DirectBoard> directBoards(
             JobProvider provider,
             String companyIdentifier,
             String companyName) {
         String identifier = ProviderSupport.validateIdentifier(companyIdentifier.trim());
         String displayName = isBlank(companyName) ? identifier : companyName.trim();
-        List<JobBoard> boards = new ArrayList<>();
+        List<DirectBoard> boards = new ArrayList<>();
         if (provider == null) {
-            boards.add(new JobBoard(JobProvider.GREENHOUSE, identifier, displayName));
-            boards.add(new JobBoard(JobProvider.LEVER, identifier, displayName));
+            boards.add(new DirectBoard(JobProvider.GREENHOUSE, identifier, displayName));
+            boards.add(new DirectBoard(JobProvider.LEVER, identifier, displayName));
         } else if (clients.containsKey(provider)) {
-            boards.add(new JobBoard(provider, identifier, displayName));
+            boards.add(new DirectBoard(provider, identifier, displayName));
         }
         return boards;
     }
@@ -266,7 +246,7 @@ public class JobDiscoveryService {
      * One unavailable public board should not make a multi-company search fail.
      * Direct provider clients still enforce their own timeout and host rules.
      */
-    private List<DiscoveredJob> fetchBoard(JobBoard board) {
+    private List<DiscoveredJob> fetchBoard(DirectBoard board) {
         JobProviderClient client = clients.get(board.provider());
         if (client == null) {
             return List.of();
@@ -372,5 +352,11 @@ public class JobDiscoveryService {
     }
 
     private record ScoredJob(DiscoveredJob job, int relevance) {
+    }
+
+    private record DirectBoard(
+            JobProvider provider,
+            String identifier,
+            String companyName) {
     }
 }

@@ -2,10 +2,12 @@ package com.jobsrch.discovery;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.Test;
 
@@ -54,49 +56,29 @@ class JobDiscoveryServiceTests {
     }
 
     @Test
-    void catalogSearchUsesAnyRoleTermAndRanksTitleMatchesFirst() {
-        JobProviderClient greenhouse = new JobProviderClient() {
-            @Override
-            public JobProvider provider() {
-                return JobProvider.GREENHOUSE;
-            }
-
-            @Override
-            public List<DiscoveredJob> fetch(String companyIdentifier, String companyName) {
-                return List.of(
+    void indexedSearchUsesAnyRoleTermAndRanksTitleMatchesFirst() {
+        JobDiscoveryService service = service(
+                List.of(),
+                List.of(
                         new DiscoveredJob(
-                                companyIdentifier + "-1", provider(), companyName,
+                                "stripe-1", JobProvider.GREENHOUSE, "Stripe",
                                 "Backend Developer", "New York",
                                 "US", WorkplaceType.HYBRID, "Build services",
-                                "https://example.com/" + companyIdentifier + "/1",
+                                "https://example.com/stripe/1",
                                 Instant.now().minusSeconds(60), null, null, null, true),
                         new DiscoveredJob(
-                                companyIdentifier + "-2", provider(), companyName,
+                                "stripe-2", JobProvider.GREENHOUSE, "Stripe",
                                 "Product Analyst", "Remote",
                                 "US", WorkplaceType.REMOTE,
                                 "Partner with software developers",
-                                "https://example.com/" + companyIdentifier + "/2",
+                                "https://example.com/stripe/2",
                                 Instant.now(), null, null, null, true),
                         new DiscoveredJob(
-                                companyIdentifier + "-3", provider(), companyName,
+                                "stripe-3", JobProvider.GREENHOUSE, "Stripe",
                                 "Backend Developer", "Tokyo, Japan",
                                 "JP", WorkplaceType.ON_SITE, "Build services",
-                                "https://example.com/" + companyIdentifier + "/3",
-                                Instant.now(), null, null, null, true));
-            }
-        };
-        JobProviderClient lever = new JobProviderClient() {
-            @Override
-            public JobProvider provider() {
-                return JobProvider.LEVER;
-            }
-
-            @Override
-            public List<DiscoveredJob> fetch(String companyIdentifier, String companyName) {
-                return List.of();
-            }
-        };
-        JobDiscoveryService service = service(List.of(greenhouse, lever));
+                                "https://example.com/stripe/3",
+                                Instant.now(), null, null, null, true)));
 
         List<DiscoveredJob> results = service.search(
                 null,
@@ -116,6 +98,44 @@ class JobDiscoveryServiceTests {
                 .contains("Product Analyst");
         assertThat(results).extracting(DiscoveredJob::countryCode)
                 .containsOnly("US");
+    }
+
+    @Test
+    void roleSearchDoesNotWaitOnLiveProviderFetchesWhenIndexIsEmpty() {
+        AtomicInteger fetches = new AtomicInteger();
+        JobProviderClient client = new JobProviderClient() {
+            @Override
+            public JobProvider provider() {
+                return JobProvider.GREENHOUSE;
+            }
+
+            @Override
+            public List<DiscoveredJob> fetch(String companyIdentifier, String companyName) {
+                fetches.incrementAndGet();
+                return List.of(
+                        new DiscoveredJob(
+                                "slow", provider(), companyName, "Software Engineer", "Remote",
+                                "US", WorkplaceType.REMOTE, "Java",
+                                "https://example.com/slow", Instant.now(),
+                                null, null, null, true));
+            }
+        };
+        JobDiscoveryService service = service(List.of(client));
+
+        List<DiscoveredJob> results = service.search(
+                null,
+                null,
+                null,
+                "engineer",
+                null,
+                "US",
+                null,
+                null,
+                DiscoverySort.RELEVANCE,
+                true);
+
+        assertThat(results).isEmpty();
+        assertThat(fetches).hasValue(0);
     }
 
     @Test
@@ -279,13 +299,25 @@ class JobDiscoveryServiceTests {
     }
 
     private JobDiscoveryService service(List<JobProviderClient> clients) {
+        return service(clients, List.of());
+    }
+
+    private JobDiscoveryService service(
+            List<JobProviderClient> clients,
+            List<DiscoveredJob> indexedJobs) {
+        JobIndexService index = mock(JobIndexService.class);
+        when(index.activeJobs()).thenReturn(indexedJobs.stream()
+                .map(this::indexed)
+                .toList());
         return new JobDiscoveryService(
                 clients,
-                List.of(),
-                new JobBoardCatalog(),
-                mock(JobIndexService.class),
+                index,
                 new JobInsightClassifier(),
                 new CandidateMatchExplainer(),
                 mock(ProfileService.class));
+    }
+
+    private IndexedJob indexed(DiscoveredJob job) {
+        return new IndexedJob(job.provider() + ":" + job.externalId(), job, Instant.now());
     }
 }
