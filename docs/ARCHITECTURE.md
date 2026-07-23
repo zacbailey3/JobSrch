@@ -187,6 +187,10 @@ them as freshness because Greenhouse exposes `updated_at`, which may represent
 an edit rather than the original publication date. Selecting a freshness
 window excludes results whose provider does not supply a date.
 
+USAJOBS supplies ISO local timestamps without an offset. The adapter interprets
+them as UTC so they remain stable, comparable instants instead of being
+discarded from every freshness-filtered search.
+
 Indexed jobs are shared search data and do not belong to a user. A posting
 enters a user's shortlist only when the user chooses **Save role**, at which
 point the existing saved-job ownership rules apply. The deterministic

@@ -2,6 +2,8 @@ package com.jobsrch.discovery;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Locale;
@@ -89,7 +91,14 @@ final class ProviderSupport {
         try {
             return OffsetDateTime.parse(value).toInstant();
         } catch (RuntimeException ignored) {
-            return null;
+            // USAJOBS returns ISO local timestamps without an offset. Treat
+            // these consistently as UTC; freshness filtering only requires a
+            // stable instant and must not discard every USAJOBS posting.
+            try {
+                return LocalDateTime.parse(value).toInstant(ZoneOffset.UTC);
+            } catch (RuntimeException invalidLocalDate) {
+                return null;
+            }
         }
     }
 

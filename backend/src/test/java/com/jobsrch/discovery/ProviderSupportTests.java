@@ -3,8 +3,17 @@ package com.jobsrch.discovery;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
+import java.time.Instant;
 
 class ProviderSupportTests {
+
+    @Test
+    void parsesOffsetAndUsaJobsLocalTimestamps() {
+        assertThat(ProviderSupport.parseInstant("2026-07-20T06:41:09.3030"))
+                .isEqualTo(Instant.parse("2026-07-20T06:41:09.303Z"));
+        assertThat(ProviderSupport.parseInstant("2026-07-20T06:41:09.303-04:00"))
+                .isEqualTo(Instant.parse("2026-07-20T10:41:09.303Z"));
+    }
 
     @Test
     void infersUnitedStatesFromCountryStateNameAndStateCode() {
