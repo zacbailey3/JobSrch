@@ -22,6 +22,7 @@ experience.
 - Role-first indexed discovery across Greenhouse, Lever, USAJOBS, and Adzuna
 - Company-balanced results so one employer cannot dominate a search
 - Scheduled provider importing with URL deduplication and stale-job expiration
+- Persistent import health history with per-provider and per-board outcomes
 - Saved searches with in-app alerts for newly imported matches
 - US-first country, workplace, freshness, and newest-first filters
 - Early-career filters for internships, apprenticeships, new-grad roles,
@@ -115,6 +116,7 @@ The defaults are suitable only for local development. Deployments should set:
 | `JOB_IMPORT_ENABLED` | Enables scheduled indexing, default `true` |
 | `JOB_IMPORT_FIXED_DELAY_MS` | Delay between imports, default six hours |
 | `JOB_EXPIRE_AFTER_HOURS` | Marks jobs stale after this many hours, default `72` |
+| `JOB_IMPORT_AUDIT_RETENTION_DAYS` | Retains import health history, default `30` days |
 
 Greenhouse and Lever work without credentials. USAJOBS and Adzuna are skipped
 until their environment variables are configured.

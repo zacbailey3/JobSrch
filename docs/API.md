@@ -77,6 +77,18 @@ Each result includes normalized `opportunityType`, `careerStage`,
 available, matching skills, desired roles, education, and experience. These
 signals are guidance; the employer's original posting remains authoritative.
 
+## Import status
+
+| Method | Route | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/import-status` | Return active inventory freshness and the 20 most recent import batches |
+
+This authenticated operational endpoint reports batch status, received and
+expired counts, and sanitized per-provider/company-board outcomes. It never
+returns provider credentials or raw exception messages. `PARTIAL_FAILURE`
+means useful inventory was indexed even though one or more independent sources
+failed.
+
 ## Saved searches and alerts
 
 | Method | Route | Purpose |

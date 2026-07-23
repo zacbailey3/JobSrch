@@ -1,9 +1,13 @@
 package com.jobsrch.discovery;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -32,6 +36,7 @@ public class JobImportService {
     private final List<AggregateJobProviderClient> aggregateClients;
     private final JobIndexService index;
     private final SavedSearchAlertService alerts;
+    private final JobImportAuditService audit;
     private final boolean enabled;
     private final Duration expireAfter;
 
@@ -41,6 +46,7 @@ public class JobImportService {
             List<AggregateJobProviderClient> aggregateClients,
             JobIndexService index,
             SavedSearchAlertService alerts,
+            JobImportAuditService audit,
             @Value("${jobsrch.import.enabled:true}") boolean enabled,
             @Value("${jobsrch.import.expire-after-hours:72}") long expireAfterHours) {
         this.catalog = catalog;
@@ -49,6 +55,7 @@ public class JobImportService {
         this.aggregateClients = aggregateClients;
         this.index = index;
         this.alerts = alerts;
+        this.audit = audit;
         this.enabled = enabled;
         this.expireAfter = Duration.ofHours(expireAfterHours);
     }
@@ -60,19 +67,27 @@ public class JobImportService {
         if (!enabled) {
             return;
         }
-        List<DiscoveredJob> imported = new ArrayList<>();
+        UUID batchId = audit.startBatch();
+        List<DiscoveredJob> imported = Collections.synchronizedList(new ArrayList<>());
+        AtomicInteger failures = new AtomicInteger();
         catalog.list(null).parallelStream().forEach(board -> {
             JobProviderClient client = boardClients.get(board.provider());
             if (client == null) {
                 return;
             }
+            Instant startedAt = Instant.now();
             try {
                 List<DiscoveredJob> jobs = client.fetch(board.identifier(), board.companyName());
-                synchronized (imported) {
-                    imported.addAll(jobs);
-                }
-            } catch (RuntimeException ignored) {
+                imported.addAll(jobs);
+                audit.success(
+                        batchId, board.provider(), ImportSourceType.COMPANY_BOARD,
+                        board.identifier(), board.companyName(), startedAt, jobs.size());
+            } catch (RuntimeException exception) {
                 // One unavailable company board must not abort the full refresh.
+                failures.incrementAndGet();
+                audit.failure(
+                        batchId, board.provider(), ImportSourceType.COMPANY_BOARD,
+                        board.identifier(), board.companyName(), startedAt);
             }
         });
         for (AggregateJobProviderClient client : aggregateClients) {
@@ -80,11 +95,29 @@ public class JobImportService {
                 continue;
             }
             for (String query : AGGREGATE_QUERIES) {
-                imported.addAll(client.search(query, null, 30));
+                Instant startedAt = Instant.now();
+                try {
+                    List<DiscoveredJob> jobs = client.search(query, null, 30);
+                    imported.addAll(jobs);
+                    audit.success(
+                            batchId, client.provider(), ImportSourceType.AGGREGATE_QUERY,
+                            query, query, startedAt, jobs.size());
+                } catch (RuntimeException exception) {
+                    failures.incrementAndGet();
+                    audit.failure(
+                            batchId, client.provider(), ImportSourceType.AGGREGATE_QUERY,
+                            query, query, startedAt);
+                }
             }
         }
-        index.upsertAll(imported);
-        index.expireStale(expireAfter);
-        alerts.refreshAll();
+        try {
+            index.upsertAll(List.copyOf(imported));
+            int expired = index.expireStale(expireAfter);
+            alerts.refreshAll();
+            audit.complete(batchId, imported.size(), expired, failures.get());
+        } catch (RuntimeException exception) {
+            audit.fail(batchId, imported.size(), failures.get());
+            throw exception;
+        }
     }
 }

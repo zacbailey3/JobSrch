@@ -9,6 +9,8 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.server.ResponseStatusException;
+import static org.springframework.http.HttpStatus.BAD_GATEWAY;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.jobsrch.config.UsaJobsProperties;
@@ -83,7 +85,7 @@ public class UsaJobsProviderClient implements AggregateJobProviderClient {
                     .map(this::map)
                     .toList();
         } catch (RestClientException exception) {
-            return List.of();
+            throw new ResponseStatusException(BAD_GATEWAY, "USAJOBS is unavailable", exception);
         }
     }
 

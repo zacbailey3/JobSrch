@@ -55,6 +55,7 @@ jobsrch:
     initial-delay-ms: ${JOB_IMPORT_INITIAL_DELAY_MS:15000}
     fixed-delay-ms: ${JOB_IMPORT_FIXED_DELAY_MS:21600000}
     expire-after-hours: ${JOB_EXPIRE_AFTER_HOURS:72}
+    audit-retention-days: ${JOB_IMPORT_AUDIT_RETENTION_DAYS:30}
 
 management:
   endpoints:

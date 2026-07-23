@@ -65,6 +65,8 @@ Flyway owns the database schema:
 - `V4__expand_indexed_job_location.sql`: room for multi-office provider labels
 - `V5__early_career_job_signals.sql`: opportunity type, career stage, degree
   language, sponsorship language, and saved-search filters
+- `V6__password_reset_tokens.sql`: hashed, expiring one-time reset tokens
+- `V7__job_import_audit.sql`: import batches and sanitized source-attempt history
 
 Never edit an applied migration. Add `V3__description.sql`, then `V4`, and so
 on. Hibernate uses `ddl-auto: validate`, which checks entity mappings against
@@ -150,6 +152,15 @@ aggregate sources on a fixed delay. `JobIndexService` hashes normalized source
 URLs with SHA-256 for compact cross-provider deduplication. Jobs become
 inactive when their provider expiration passes or no provider has returned
 them within the configured stale window.
+
+Every scheduled refresh creates a `JobImportBatch`. Each company board and
+aggregate query creates a separate attempt record with timing, outcome, and
+received count. Provider failures are isolated and stored with a sanitized
+message; raw exceptions and credentials are not persisted. A batch becomes
+`PARTIAL_FAILURE` when some sources fail but indexing still completes, while
+`FAILED` means index updating or alert processing did not finish. Old audit
+batches are removed after the configurable retention period (30 days by
+default); attempt rows follow through the database cascade.
 
 `JobBoardCatalog` supplies an explicit set of public company boards. A direct
 board token remains optional for targeted Greenhouse or Lever searching.

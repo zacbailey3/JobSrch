@@ -6,6 +6,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 public interface IndexedJobRepository extends JpaRepository<IndexedJob, UUID> {
 
@@ -16,4 +17,9 @@ public interface IndexedJobRepository extends JpaRepository<IndexedJob, UUID> {
     List<IndexedJob> findByActiveTrueAndLastSeenAtBefore(Instant cutoff);
 
     List<IndexedJob> findByActiveTrueAndExpiresAtBefore(Instant cutoff);
+
+    long countByActiveTrue();
+
+    @Query("select max(job.lastSeenAt) from IndexedJob job where job.active = true")
+    Instant findNewestActiveLastSeenAt();
 }

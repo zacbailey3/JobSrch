@@ -7,6 +7,8 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.server.ResponseStatusException;
+import static org.springframework.http.HttpStatus.BAD_GATEWAY;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.jobsrch.config.AdzunaProperties;
@@ -76,7 +78,7 @@ public class AdzunaProviderClient implements AggregateJobProviderClient {
             }
             return response.results().stream().map(this::map).toList();
         } catch (RestClientException exception) {
-            return List.of();
+            throw new ResponseStatusException(BAD_GATEWAY, "Adzuna is unavailable", exception);
         }
     }
 
