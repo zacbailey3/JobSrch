@@ -27,17 +27,20 @@ public class PasswordResetService {
     private final PasswordResetTokenRepository tokens;
     private final PasswordEncoder passwordEncoder;
     private final PasswordResetProperties properties;
+    private final PasswordResetEmailService emailService;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public PasswordResetService(
             UserAccountRepository users,
             PasswordResetTokenRepository tokens,
             PasswordEncoder passwordEncoder,
-            PasswordResetProperties properties) {
+            PasswordResetProperties properties,
+            PasswordResetEmailService emailService) {
         this.users = users;
         this.tokens = tokens;
         this.passwordEncoder = passwordEncoder;
         this.properties = properties;
+        this.emailService = emailService;
     }
 
     @Transactional
@@ -68,6 +71,9 @@ public class PasswordResetService {
         String rawToken = generateToken();
         Instant expiresAt = Instant.now().plus(properties.ttl());
         tokens.save(new PasswordResetToken(user.getId(), hash(rawToken), expiresAt));
+        if (!properties.exposeDevelopmentToken()) {
+            emailService.send(user.getEmail(), rawToken, expiresAt);
+        }
         return new PasswordResetResponse(
                 GENERIC_MESSAGE,
                 properties.exposeDevelopmentToken() ? rawToken : null,

@@ -7,6 +7,9 @@ import java.nio.file.StandardCopyOption;
 import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
+import java.io.InputStream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -93,6 +96,48 @@ public class ResumeStorageService {
         if (!ALLOWED_EXTENSIONS.contains(extension)) {
             throw new ResponseStatusException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Resume must be a PDF or DOCX");
         }
+        validateFileSignature(file, extension);
+    }
+
+    /**
+     * An extension and browser-supplied MIME type are not evidence of a file's
+     * real format. PDFs must have the PDF signature; DOCX uploads must be ZIP
+     * containers containing the core Word document entry.
+     */
+    private void validateFileSignature(MultipartFile file, String extension) {
+        try {
+            if ("pdf".equals(extension)) {
+                byte[] signature = file.getInputStream().readNBytes(5);
+                if (!java.util.Arrays.equals(signature, "%PDF-".getBytes(java.nio.charset.StandardCharsets.US_ASCII))) {
+                    throw invalidFileContents();
+                }
+                return;
+            }
+
+            boolean hasContentTypes = false;
+            boolean hasDocument = false;
+            try (InputStream input = file.getInputStream();
+                    ZipInputStream zip = new ZipInputStream(input)) {
+                ZipEntry entry;
+                int inspected = 0;
+                while ((entry = zip.getNextEntry()) != null && inspected++ < 200) {
+                    hasContentTypes |= "[Content_Types].xml".equals(entry.getName());
+                    hasDocument |= "word/document.xml".equals(entry.getName());
+                    if (hasContentTypes && hasDocument) {
+                        return;
+                    }
+                }
+            }
+            throw invalidFileContents();
+        } catch (IOException exception) {
+            throw invalidFileContents();
+        }
+    }
+
+    private ResponseStatusException invalidFileContents() {
+        return new ResponseStatusException(
+                HttpStatus.UNSUPPORTED_MEDIA_TYPE,
+                "File contents do not match a valid PDF or DOCX resume");
     }
 
     private String safeOriginalFilename(MultipartFile file) {

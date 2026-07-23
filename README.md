@@ -9,7 +9,7 @@ experience.
 - Java 25 LTS and Spring Boot 4
 - Angular 21
 - MySQL 8.4 with Flyway migrations
-- JWT email/password authentication
+- JWT email/password authentication delivered through secure HttpOnly cookies
 
 ## Current features
 
@@ -101,6 +101,10 @@ The defaults are suitable only for local development. Deployments should set:
 | `DB_PASSWORD` | MySQL application password |
 | `JWT_SECRET` | Secret of at least 32 bytes used to sign tokens |
 | `PASSWORD_RESET_EXPOSE_TOKEN` | Shows reset codes in the UI for local development; set to `false` before public deployment |
+| `RESEND_API_KEY` | Resend API key used for production password-reset email |
+| `PASSWORD_RESET_FROM` | Sender on a domain verified with Resend |
+| `FRONTEND_BASE_URL` | Public frontend URL used to build password-reset links |
+| `AUTH_COOKIE_SECURE` | Requires HTTPS for the session cookie; set to `true` in production |
 | `CORS_ALLOWED_ORIGINS` | Comma-separated frontend origins allowed to call the API |
 | `RESUME_DIRECTORY` | Persistent private directory for uploaded resumes |
 | `PORT` | API port, default `8080` |
@@ -114,6 +118,14 @@ The defaults are suitable only for local development. Deployments should set:
 
 Greenhouse and Lever work without credentials. USAJOBS and Adzuna are skipped
 until their environment variables are configured.
+
+Production password reset uses Resend. Its free plan is sufficient for a small
+learning deployment, but sending to arbitrary recipients requires a domain you
+control and DNS verification. Local development may keep
+`PASSWORD_RESET_EXPOSE_TOKEN=true`; production Compose defaults it to `false`.
+
+See [docs/SECURITY.md](docs/SECURITY.md) for the authentication, CSRF, rate
+limiting, upload-validation, and deployment decisions.
 
 ## Verification
 

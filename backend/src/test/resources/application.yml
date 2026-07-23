@@ -16,9 +16,17 @@ jobsrch:
     issuer: jobsrch-test
     secret: test-secret-that-is-at-least-thirty-two-bytes-long
     ttl: PT1H
+  auth-cookie:
+    name: JOBSRCH_SESSION
+    secure: false
+    same-site: Strict
   password-reset:
     ttl: PT15M
     expose-development-token: true
+  email:
+    resend-api-key:
+    from:
+    frontend-base-url: http://localhost:4200
   cors:
     allowed-origins:
       - http://localhost:4200

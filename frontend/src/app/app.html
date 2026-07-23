@@ -298,6 +298,22 @@
             </form>
           </aside>
         </div>
+
+        <section class="panel danger-zone">
+          <p class="eyebrow">Account controls</p>
+          <h2>Delete account</h2>
+          <p class="muted">Permanently removes your profile, saved jobs, applications, alerts,
+            reset tokens, resume records, and stored resume files.</p>
+          <label>
+            Confirm your password
+            <input type="password" [(ngModel)]="accountDeletionPassword"
+              autocomplete="current-password" />
+          </label>
+          <button class="danger-button" type="button" (click)="deleteAccount()"
+            [disabled]="loading() || !accountDeletionPassword">
+            Permanently delete account
+          </button>
+        </section>
       }
 
       @if (view() === 'discover') {

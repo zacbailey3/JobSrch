@@ -6,22 +6,12 @@ import { AuthService } from './auth.service';
 
 export const authInterceptor: HttpInterceptorFn = (request, next) => {
   const auth = inject(AuthService);
-  if (request.url.includes('/api/auth/')) {
-    return next(request);
-  }
-
-  const token = auth.token();
-  if (!token) {
-    return next(request);
-  }
-  return next(request.clone({
-    setHeaders: { Authorization: `Bearer ${token}` }
-  })).pipe(
+  return next(request).pipe(
     catchError(error => {
-      // A rejected JWT cannot recover while it remains in browser storage.
-      // Clearing it immediately returns the UI to login for a fresh session.
+      // A 401 means the protected cookie is absent or expired. Clear only the
+      // browser metadata; calling logout here would cause another HTTP request.
       if (error.status === 401) {
-        auth.logout();
+        auth.clearSession();
       }
       return throwError(() => error);
     })

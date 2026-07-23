@@ -18,8 +18,10 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
-import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfFilter;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -38,25 +40,37 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
         CorsProperties.class,
         StorageProperties.class,
         UsaJobsProperties.class,
-        AdzunaProperties.class
+        AdzunaProperties.class,
+        AuthCookieProperties.class,
+        EmailProperties.class
 })
 public class SecurityConfig {
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        DefaultBearerTokenResolver bearerTokenResolver = new DefaultBearerTokenResolver();
+    SecurityFilterChain securityFilterChain(
+            HttpSecurity http,
+            AuthCookieProperties cookieProperties) throws Exception {
+        CookieCsrfTokenRepository csrfRepository = CookieCsrfTokenRepository.withHttpOnlyFalse();
+        csrfRepository.setCookiePath("/");
         return http
-                .csrf(csrf -> csrf.disable())
+                .csrf(csrf -> csrf
+                        .csrfTokenRepository(csrfRepository)
+                        // These endpoints establish or recover authentication and
+                        // therefore cannot require a pre-existing CSRF cookie.
+                        .ignoringRequestMatchers(
+                                "/api/auth/login",
+                                "/api/auth/register",
+                                "/api/auth/password-reset/request",
+                                "/api/auth/password-reset/confirm"))
+                .addFilterAfter(new CsrfCookieFilter(), CsrfFilter.class)
+                .addFilterBefore(new AuthRateLimitFilter(), UsernamePasswordAuthenticationFilter.class)
                 .cors(Customizer.withDefaults())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**", "/actuator/health").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth -> oauth
-                        .bearerTokenResolver(request ->
-                                request.getServletPath().startsWith("/api/auth/")
-                                        ? null
-                                        : bearerTokenResolver.resolve(request))
+                        .bearerTokenResolver(new CookieBearerTokenResolver(cookieProperties.name()))
                         .jwt(Customizer.withDefaults()))
                 .build();
     }

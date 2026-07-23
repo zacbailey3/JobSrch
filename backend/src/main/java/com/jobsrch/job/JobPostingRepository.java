@@ -13,4 +13,6 @@ public interface JobPostingRepository extends JpaRepository<JobPosting, UUID> {
     Optional<JobPosting> findByIdAndOwnerId(UUID id, UUID ownerId);
 
     long countByOwnerId(UUID ownerId);
+
+    void deleteAllByOwnerId(UUID ownerId);
 }

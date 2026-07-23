@@ -3,7 +3,6 @@ import { Injectable, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 
 export interface AuthResponse {
-  accessToken: string;
   expiresIn: number;
   userId: string;
   email: string;
@@ -25,10 +24,11 @@ export interface PasswordResetResponse {
 }
 
 /**
- * Owns the browser session and persists the JWT between page refreshes.
+ * Owns browser-visible account state. The backend stores the JWT in an
+ * HttpOnly cookie, so Angular cannot read or accidentally expose it.
  *
- * The HTTP interceptor reads the token from this service; components never
- * construct Authorization headers themselves.
+ * Local storage contains display metadata only; it is not proof that the
+ * server-side cookie is still valid. Any 401 response clears this state.
  */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -57,15 +57,18 @@ export class AuthService {
     return this.http.post<void>('/api/auth/password-reset/confirm', { token, password });
   }
 
-  token(): string | null {
-    return this.session()?.accessToken ?? null;
-  }
-
   isAuthenticated(): boolean {
-    return this.token() !== null;
+    return this.session() !== null;
   }
 
   logout(): void {
+    this.http.post<void>('/api/auth/logout', {}).subscribe({
+      error: () => this.clearSession()
+    });
+    this.clearSession();
+  }
+
+  clearSession(): void {
     localStorage.removeItem(this.storageKey);
     this.session.set(null);
   }

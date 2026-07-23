@@ -15,4 +15,6 @@ public interface JobApplicationRepository extends JpaRepository<JobApplication, 
     long countByUserId(UUID userId);
 
     long countByUserIdAndStatus(UUID userId, ApplicationStatus status);
+
+    void deleteAllByUserId(UUID userId);
 }

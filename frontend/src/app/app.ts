@@ -150,6 +150,7 @@ export class App implements OnInit {
     password: '',
     confirmPassword: ''
   };
+  accountDeletionPassword = '';
 
   newJob: JobRequest = this.emptyJob();
   newApplication: ApplicationRequest = this.emptyApplication();
@@ -187,6 +188,14 @@ export class App implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    const resetToken = new URLSearchParams(window.location.search).get('resetToken');
+    if (resetToken) {
+      this.passwordReset.token = resetToken;
+      this.authMode.set('reset');
+      // Remove the credential from the address bar and browser history after
+      // reading it so it is less likely to be copied or retained accidentally.
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
     if (this.auth.isAuthenticated()) {
       this.loadWorkspace();
     }
@@ -262,6 +271,23 @@ export class App implements OnInit {
         };
         this.authMode.set('login');
         this.success.set('Password updated. Sign in with your new password.');
+      },
+      error: error => this.handleError(error)
+    });
+  }
+
+  deleteAccount(): void {
+    if (!this.accountDeletionPassword
+        || !window.confirm('Permanently delete your account and all JobSrch data? This cannot be undone.')) {
+      return;
+    }
+    this.beginRequest();
+    this.api.deleteAccount(this.accountDeletionPassword).subscribe({
+      next: () => {
+        this.loading.set(false);
+        this.accountDeletionPassword = '';
+        this.auth.logout();
+        this.success.set('Your account and stored data were deleted.');
       },
       error: error => this.handleError(error)
     });

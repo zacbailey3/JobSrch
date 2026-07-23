@@ -818,6 +818,26 @@ button,
   display: none;
 }
 
+.danger-zone {
+  margin-top: 1.5rem;
+  border-color: #b42318;
+}
+
+.danger-button {
+  margin-top: 1rem;
+  border: 1px solid #b42318;
+  border-radius: 0.55rem;
+  background: #b42318;
+  color: #fff;
+  padding: 0.7rem 1rem;
+  cursor: pointer;
+}
+
+.danger-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .resume-card {
   align-items: center;
   background: #fafbf8;

@@ -11,4 +11,6 @@ public interface ResumeRepository extends JpaRepository<Resume, UUID> {
     List<Resume> findByUserIdOrderByUploadedAtDesc(UUID userId);
 
     Optional<Resume> findByIdAndUserId(UUID id, UUID userId);
+
+    void deleteAllByUserId(UUID userId);
 }

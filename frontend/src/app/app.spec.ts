@@ -51,7 +51,6 @@ describe('App', () => {
     fixture.detectChanges();
     const app = fixture.componentInstance;
     app.auth.session.set({
-      accessToken: 'test-token',
       expiresIn: 3600,
       userId: 'test-user',
       email: 'student@example.com',
@@ -85,7 +84,6 @@ describe('App', () => {
     fixture.detectChanges();
     const app = fixture.componentInstance;
     app.auth.session.set({
-      accessToken: 'test-token',
       expiresIn: 3600,
       userId: 'test-user',
       email: 'student@example.com',

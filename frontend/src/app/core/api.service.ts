@@ -324,4 +324,8 @@ export class ApiService {
   markSearchAlertsSeen(): Observable<void> {
     return this.http.post<void>('/api/saved-searches/alerts/seen', {});
   }
+
+  deleteAccount(password: string): Observable<void> {
+    return this.http.delete<void>('/api/account', { body: { password } });
+  }
 }

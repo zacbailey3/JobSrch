@@ -13,7 +13,6 @@ describe('authInterceptor', () => {
   beforeEach(() => {
     localStorage.clear();
     localStorage.setItem('jobsrch-session', JSON.stringify({
-      accessToken: 'stale-token',
       expiresIn: 3600,
       userId: 'user-1',
       email: 'stale@example.com',
@@ -42,14 +41,14 @@ describe('authInterceptor', () => {
     http.get('/api/dashboard').subscribe({ error: () => undefined });
 
     const request = httpTesting.expectOne('/api/dashboard');
-    expect(request.request.headers.get('Authorization')).toBe('Bearer stale-token');
+    expect(request.request.headers.has('Authorization')).toBe(false);
     request.flush({}, { status: 401, statusText: 'Unauthorized' });
 
     expect(auth.session()).toBeNull();
     expect(localStorage.getItem('jobsrch-session')).toBeNull();
   });
 
-  it('does not attach a stored token to authentication requests', () => {
+  it('does not attach an Authorization header to authentication requests', () => {
     http.post('/api/auth/register', {
       email: 'new@example.com',
       password: 'password123',
@@ -60,7 +59,6 @@ describe('authInterceptor', () => {
     const request = httpTesting.expectOne('/api/auth/register');
     expect(request.request.headers.has('Authorization')).toBe(false);
     request.flush({
-      accessToken: 'new-token',
       expiresIn: 3600,
       userId: 'user-2',
       email: 'new@example.com',

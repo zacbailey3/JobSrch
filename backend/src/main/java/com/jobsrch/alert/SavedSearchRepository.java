@@ -13,4 +13,6 @@ public interface SavedSearchRepository extends JpaRepository<SavedSearch, UUID> 
     Optional<SavedSearch> findByIdAndUser_Id(UUID id, UUID userId);
 
     List<SavedSearch> findByAlertsEnabledTrue();
+
+    void deleteAllByUser_Id(UUID userId);
 }

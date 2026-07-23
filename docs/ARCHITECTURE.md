@@ -39,7 +39,10 @@ controllers.
 ## Authentication and ownership
 
 `AuthService` signs an HMAC JWT whose subject is the normalized email address.
-Spring Security validates that signature before protected controllers run.
+The controller delivers it only through an HttpOnly session cookie, so Angular
+cannot read or persist the credential. Spring Security resolves and validates
+that cookie before protected controllers run. CSRF tokens protect
+state-changing cookie-authenticated requests.
 
 Authentication answers "who made this request." It does not answer "does this
 record belong to that user." `CurrentUserService` resolves the database account,
@@ -48,7 +51,8 @@ therefore cannot retrieve or mutate another user's jobs, applications, profile,
 or resumes by guessing a UUID.
 
 Passwords are stored as BCrypt hashes. JWTs are stateless and expire after the
-configured duration. Production must provide a private `JWT_SECRET`.
+configured duration. Production must provide a private `JWT_SECRET`, enable the
+cookie's `Secure` attribute, and use HTTPS.
 
 ## Database migrations
 

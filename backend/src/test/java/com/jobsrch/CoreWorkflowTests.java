@@ -32,6 +32,8 @@ import com.jobsrch.alert.SavedSearchAlertService;
 import com.jobsrch.alert.SavedSearchRequest;
 import com.jobsrch.auth.AuthResponse;
 import com.jobsrch.auth.AuthService;
+import com.jobsrch.auth.AccountDeletionService;
+import com.jobsrch.auth.DeleteAccountRequest;
 import com.jobsrch.auth.LoginRequest;
 import com.jobsrch.auth.PasswordResetConfirmRequest;
 import com.jobsrch.auth.PasswordResetRequest;
@@ -55,6 +57,7 @@ import com.jobsrch.profile.ProfileResponse;
 import com.jobsrch.profile.ProfileService;
 import com.jobsrch.resume.ResumeResponse;
 import com.jobsrch.resume.ResumeService;
+import com.jobsrch.user.UserAccountRepository;
 
 @SpringBootTest
 @Transactional
@@ -92,6 +95,31 @@ class CoreWorkflowTests {
 
     @Autowired
     private JobIndexService jobIndexService;
+
+    @Autowired
+    private AccountDeletionService accountDeletionService;
+
+    @Autowired
+    private UserAccountRepository users;
+
+    @Test
+    void userCanPermanentlyDeleteAccountAndOwnedData() {
+        AuthResponse auth = authService.register(new RegisterRequest(
+                "delete@example.com",
+                "strong-password",
+                "Delete",
+                "Me"));
+        Jwt jwt = jwtDecoder.decode(auth.accessToken());
+        jobService.create(jwt, new JobRequest(
+                "Acme", "Junior Developer", "Remote", "Java role",
+                "https://example.com/delete", 0, 2, null));
+        resumeService.upload(jwt, new MockMultipartFile(
+                "file", "delete.pdf", "application/pdf", "%PDF-1.4 sample".getBytes()));
+
+        accountDeletionService.delete(jwt, new DeleteAccountRequest("strong-password"));
+
+        assertThat(users.findByEmailIgnoreCase("delete@example.com")).isEmpty();
+    }
 
     @Test
     void userCanResetPasswordWithAOneTimeToken() {

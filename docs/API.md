@@ -1,11 +1,9 @@
 # JobSrch REST API
 
-All request and response bodies use JSON unless marked as multipart. Protected
-routes require:
-
-```http
-Authorization: Bearer <accessToken>
-```
+All request and response bodies use JSON unless marked as multipart. Login and
+registration set the protected `JOBSRCH_SESSION` cookie; browser JavaScript
+never receives the JWT. State-changing protected requests also send Angular's
+`X-XSRF-TOKEN` header from the `XSRF-TOKEN` cookie.
 
 Validation errors use RFC 9457 problem details and may include an `errors`
 object keyed by field name.
@@ -14,8 +12,12 @@ object keyed by field name.
 
 | Method | Route | Auth | Purpose |
 | --- | --- | --- | --- |
-| `POST` | `/api/auth/register` | No | Create an account and return a JWT |
-| `POST` | `/api/auth/login` | No | Verify credentials and return a JWT |
+| `POST` | `/api/auth/register` | No | Create an account and set the session cookie |
+| `POST` | `/api/auth/login` | No | Verify credentials and set the session cookie |
+| `POST` | `/api/auth/logout` | Yes | Expire the session cookie |
+| `POST` | `/api/auth/password-reset/request` | No | Request a one-time reset link |
+| `POST` | `/api/auth/password-reset/confirm` | No | Consume a reset token and set a new password |
+| `DELETE` | `/api/account` | Yes | Password-confirmed permanent account and user-data deletion |
 
 Registration fields: `email`, `password`, `firstName`, `lastName`.
 
@@ -64,9 +66,9 @@ Query parameters:
 | `maximumExperience` | No | Maximum stated upper experience bound, from 0 to 10 |
 
 Scheduled imports populate a shared provider-neutral index. A broad search uses
-that index and performs an initial live fetch only when no indexed coverage is
-available. A direct Greenhouse or Lever board token always performs a targeted
-live request. The API returns at most 100 normalized postings, with no more
+that index and does not wait on external providers when coverage is empty. A
+direct Greenhouse or Lever board token performs a targeted live request. The
+API returns at most 100 normalized postings, with no more
 than five results from one company.
 
 Each result includes normalized `opportunityType`, `careerStage`,
