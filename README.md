@@ -101,13 +101,15 @@ The defaults are suitable only for local development. Deployments should set:
 | `DB_USERNAME` | MySQL application user |
 | `DB_PASSWORD` | MySQL application password |
 | `JWT_SECRET` | Secret of at least 32 bytes used to sign tokens |
-| `PASSWORD_RESET_EXPOSE_TOKEN` | Shows reset codes in the UI for local development; set to `false` before public deployment |
+| `PASSWORD_RESET_EXPOSE_TOKEN` | Shows reset codes locally; the production profile always forces this to `false` |
 | `RESEND_API_KEY` | Resend API key used for production password-reset email |
 | `PASSWORD_RESET_FROM` | Sender on a domain verified with Resend |
 | `FRONTEND_BASE_URL` | Public frontend URL used to build password-reset links |
-| `AUTH_COOKIE_SECURE` | Requires HTTPS for the session cookie; set to `true` in production |
+| `AUTH_COOKIE_SECURE` | Local override; the production profile always forces secure HTTPS-only cookies |
 | `CORS_ALLOWED_ORIGINS` | Comma-separated frontend origins allowed to call the API |
 | `RESUME_DIRECTORY` | Persistent private directory for uploaded resumes |
+| `MALWARE_SCAN_ENABLED` | Optional locally; the production profile requires ClamAV scanning |
+| `CLAMAV_HOST` / `CLAMAV_PORT` | ClamAV location; production Compose supplies the private sidecar |
 | `PORT` | API port, default `8080` |
 | `USAJOBS_EMAIL` | Email registered with the optional USAJOBS API |
 | `USAJOBS_API_KEY` | Optional [USAJOBS API](https://developer.usajobs.gov/) key |
@@ -124,7 +126,27 @@ until their environment variables are configured.
 Production password reset uses Resend. Its free plan is sufficient for a small
 learning deployment, but sending to arbitrary recipients requires a domain you
 control and DNS verification. Local development may keep
-`PASSWORD_RESET_EXPOSE_TOKEN=true`; production Compose defaults it to `false`.
+`PASSWORD_RESET_EXPOSE_TOKEN=true`; the production profile always disables it.
+
+## Portfolio production
+
+Create a separate production environment file from `.env.example`; do not reuse
+the local `.env`. Replace every placeholder and use public HTTPS URLs:
+
+```powershell
+docker compose --env-file .env.production -f docker-compose.prod.yml config
+docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
+```
+
+The production stack includes MySQL, ClamAV, the Spring API, and the Angular
+Nginx container. Spring activates the `prod` profile and refuses to start with
+development secrets, insecure origins/cookies, exposed reset tokens, or
+disabled malware scanning. ClamAV's initial virus-definition download may take
+several minutes.
+
+Terminate TLS in front of port `WEB_PORT` and keep the backend, database, and
+ClamAV ports private. Free hosting is appropriate for a portfolio deployment,
+but it does not replace tested backups or availability monitoring.
 
 See [docs/SECURITY.md](docs/SECURITY.md) for the authentication, CSRF, rate
 limiting, upload-validation, and deployment decisions.

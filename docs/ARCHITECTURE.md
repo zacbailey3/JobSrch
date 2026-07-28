@@ -198,6 +198,12 @@ point the existing saved-job ownership rules apply. The deterministic
 experience exceeds three years. Unknown experience is shown as "entry-level
 likely," not asserted as a fact.
 
+Roman-numeral titles are handled conservatively: common `Engineer I` and
+`Developer I` titles are explicit entry signals, Level III and above are
+treated as senior, and Level II remains neutral because employers use it
+inconsistently. Stated experience requirements still participate in the
+classification.
+
 `JobInsightClassifier` adds conservative metadata for opportunity type, career
 stage, degree language, and visa sponsorship. Unknown values stay unknown
 rather than being inferred optimistically. `CandidateMatchExplainer` then adds

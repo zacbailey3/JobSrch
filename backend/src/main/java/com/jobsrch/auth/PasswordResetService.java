@@ -62,6 +62,7 @@ public class PasswordResetService {
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.BAD_REQUEST, "The reset token is invalid or has expired"));
         user.updatePasswordHash(passwordEncoder.encode(request.password()));
+        user.invalidateSessions();
         token.markUsed(now);
         tokens.deleteAllByUserId(user.getId());
     }

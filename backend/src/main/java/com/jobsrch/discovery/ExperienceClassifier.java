@@ -22,9 +22,14 @@ public class ExperienceClassifier {
             "\\b(\\d{1,2})\\s*\\+?\\s*(?:years?|yrs?)\\b");
     private static final Pattern ENTRY_MARKER = Pattern.compile(
             "\\b(?:junior|entry[ -]level|associate|new grad|graduate|intern|internship|apprentice)\\b");
+    private static final Pattern LEVEL_ONE_TITLE = Pattern.compile(
+            "\\b(?:software|systems?|application|backend|frontend|full[ -]?stack|platform|quality|"
+                    + "test|development)?\\s*(?:engineer|developer)\\s+(?:level\\s+)?i\\b");
     private static final Pattern SENIOR_MARKER = Pattern.compile(
             "(?:\\bsr\\.?(?=\\s|$|[-,/]))"
                     + "|\\b(?:senior|staff|principal|lead|manager|director|vice president|vp)\\b");
+    private static final Pattern LEVEL_THREE_OR_HIGHER_TITLE = Pattern.compile(
+            "\\b(?:engineer|developer)\\s+(?:level\\s+)?(?:iii|iv|v|vi|vii|viii|ix|x)\\b");
 
     public ExperienceClassification classify(String title, String description) {
         String normalizedTitle = normalize(title);
@@ -49,8 +54,10 @@ public class ExperienceClassifier {
             }
         }
 
-        boolean explicitEntry = ENTRY_MARKER.matcher(normalizedTitle).find();
-        boolean explicitSenior = SENIOR_MARKER.matcher(normalizedTitle).find();
+        boolean explicitEntry = ENTRY_MARKER.matcher(normalizedTitle).find()
+                || LEVEL_ONE_TITLE.matcher(normalizedTitle).find();
+        boolean explicitSenior = SENIOR_MARKER.matcher(normalizedTitle).find()
+                || LEVEL_THREE_OR_HIGHER_TITLE.matcher(normalizedTitle).find();
         boolean likelyEntry = !explicitSenior && (
                 explicitEntry
                         || maximum == null

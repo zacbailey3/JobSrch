@@ -1,50 +1,94 @@
 services:
   mysql:
     image: mysql:8.4
+    restart: unless-stopped
     environment:
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-jobsrch}
-      MYSQL_USER: ${DB_USERNAME:-jobsrch}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-jobsrch}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-jobsrch-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:?Set MYSQL_DATABASE in your production environment}
+      MYSQL_USER: ${DB_USERNAME:?Set DB_USERNAME in your production environment}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in your production environment}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in your production environment}
     volumes:
       - jobsrch-mysql-prod:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-jobsrch-root}"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root --password=\"$${MYSQL_ROOT_PASSWORD}\""]
       interval: 5s
       timeout: 5s
       retries: 20
+    mem_limit: 1g
+
+  clamav:
+    image: clamav/clamav:stable
+    restart: unless-stopped
+    volumes:
+      - jobsrch-clamav-data:/var/lib/clamav
+    healthcheck:
+      test: ["CMD-SHELL", "clamdscan --ping 1 --wait"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 90s
+    mem_limit: 2g
 
   backend:
     build:
       context: ./backend
     environment:
-      DB_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-jobsrch}?createDatabaseIfNotExist=true
-      DB_USERNAME: ${DB_USERNAME:-jobsrch}
-      DB_PASSWORD: ${DB_PASSWORD:-jobsrch}
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:?Set MYSQL_DATABASE in your production environment}
+      DB_USERNAME: ${DB_USERNAME:?Set DB_USERNAME in your production environment}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in your production environment}
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in your .env file}
-      PASSWORD_RESET_EXPOSE_TOKEN: ${PASSWORD_RESET_EXPOSE_TOKEN:-false}
       RESEND_API_KEY: ${RESEND_API_KEY:?Set RESEND_API_KEY in your .env file}
       PASSWORD_RESET_FROM: ${PASSWORD_RESET_FROM:?Set PASSWORD_RESET_FROM in your .env file}
       FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:?Set FRONTEND_BASE_URL in your .env file}
-      AUTH_COOKIE_SECURE: "true"
-      AUTH_COOKIE_SAME_SITE: Strict
-      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:8080}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?Set the public HTTPS frontend origin}
+      CLAMAV_HOST: clamav
+      CLAMAV_PORT: 3310
       RESUME_DIRECTORY: /app/data/resumes
+      USAJOBS_EMAIL: ${USAJOBS_EMAIL:-}
+      USAJOBS_API_KEY: ${USAJOBS_API_KEY:-}
+      ADZUNA_APP_ID: ${ADZUNA_APP_ID:-}
+      ADZUNA_APP_KEY: ${ADZUNA_APP_KEY:-}
       PORT: 8080
     volumes:
       - jobsrch-resumes:/app/data/resumes
     depends_on:
       mysql:
         condition: service_healthy
+      clamav:
+        condition: service_healthy
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 768m
+    cpus: 1.0
 
   frontend:
     build:
       context: ./frontend
     ports:
-      - "${WEB_PORT:-8080}:80"
+      - "${WEB_PORT:-8080}:8080"
     depends_on:
       - backend
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+      - /var/cache/nginx:size=16m
+      - /var/run:size=1m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 128m
+    cpus: 0.5
 
 volumes:
   jobsrch-mysql-prod:
   jobsrch-resumes:
+  jobsrch-clamav-data:

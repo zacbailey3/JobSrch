@@ -26,6 +26,7 @@ public class JobImportService {
 
     private static final List<String> AGGREGATE_QUERIES = List.of(
             "software engineer",
+            "software engineer I",
             "software developer",
             "data analyst",
             "quality assurance",

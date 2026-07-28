@@ -34,6 +34,9 @@ public class UserAccount {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    @Column(name = "security_version", nullable = false)
+    private long securityVersion;
+
     protected UserAccount() {
     }
 
@@ -44,6 +47,7 @@ public class UserAccount {
         this.firstName = firstName;
         this.lastName = lastName;
         this.createdAt = Instant.now();
+        this.securityVersion = 0;
     }
 
     public UUID getId() {
@@ -68,5 +72,16 @@ public class UserAccount {
 
     public void updatePasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
+    }
+
+    public long getSecurityVersion() {
+        return securityVersion;
+    }
+
+    /**
+     * Invalidates every JWT issued before a sensitive account change.
+     */
+    public void invalidateSessions() {
+        securityVersion++;
     }
 }

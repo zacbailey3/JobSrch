@@ -68,6 +68,7 @@ public class AuthService {
                 .expiresAt(expiresAt)
                 .subject(user.getEmail())
                 .claim("userId", user.getId().toString())
+                .claim("securityVersion", user.getSecurityVersion())
                 .build();
         String token = jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
         return new AuthResponse(

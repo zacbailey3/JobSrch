@@ -31,11 +31,18 @@ public class ResumeStorageService {
 
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of("pdf", "docx");
     private static final long MAX_FILE_SIZE = 10 * 1024 * 1024;
+    private static final int MAX_DOCX_ENTRIES = 200;
+    private static final long MAX_DOCX_ENTRY_SIZE = 20L * 1024 * 1024;
+    private static final long MAX_DOCX_UNCOMPRESSED_SIZE = 30L * 1024 * 1024;
 
     private final Path root;
+    private final ResumeMalwareScanner malwareScanner;
 
-    public ResumeStorageService(StorageProperties properties) {
+    public ResumeStorageService(
+            StorageProperties properties,
+            ResumeMalwareScanner malwareScanner) {
         this.root = properties.resumeDirectory().toAbsolutePath().normalize();
+        this.malwareScanner = malwareScanner;
     }
 
     public StoredResume store(MultipartFile file) {
@@ -97,6 +104,7 @@ public class ResumeStorageService {
             throw new ResponseStatusException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Resume must be a PDF or DOCX");
         }
         validateFileSignature(file, extension);
+        malwareScanner.scan(file);
     }
 
     /**
@@ -120,18 +128,41 @@ public class ResumeStorageService {
                     ZipInputStream zip = new ZipInputStream(input)) {
                 ZipEntry entry;
                 int inspected = 0;
-                while ((entry = zip.getNextEntry()) != null && inspected++ < 200) {
+                long totalUncompressed = 0;
+                byte[] buffer = new byte[8 * 1024];
+                while ((entry = zip.getNextEntry()) != null) {
+                    if (++inspected > MAX_DOCX_ENTRIES || unsafeZipEntry(entry.getName())) {
+                        throw invalidFileContents();
+                    }
                     hasContentTypes |= "[Content_Types].xml".equals(entry.getName());
                     hasDocument |= "word/document.xml".equals(entry.getName());
-                    if (hasContentTypes && hasDocument) {
-                        return;
+
+                    long entryUncompressed = 0;
+                    int read;
+                    while ((read = zip.read(buffer)) != -1) {
+                        entryUncompressed += read;
+                        totalUncompressed += read;
+                        if (entryUncompressed > MAX_DOCX_ENTRY_SIZE
+                                || totalUncompressed > MAX_DOCX_UNCOMPRESSED_SIZE) {
+                            throw invalidFileContents();
+                        }
                     }
                 }
             }
-            throw invalidFileContents();
+            if (!hasContentTypes || !hasDocument) {
+                throw invalidFileContents();
+            }
         } catch (IOException exception) {
             throw invalidFileContents();
         }
+    }
+
+    private boolean unsafeZipEntry(String name) {
+        return name == null
+                || name.startsWith("/")
+                || name.startsWith("\\")
+                || name.contains("../")
+                || name.contains("..\\");
     }
 
     private ResponseStatusException invalidFileContents() {

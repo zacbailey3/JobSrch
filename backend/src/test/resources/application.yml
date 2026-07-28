@@ -32,5 +32,17 @@ jobsrch:
       - http://localhost:4200
   storage:
     resume-directory: ${java.io.tmpdir}/jobsrch-test-resumes
+  malware-scan:
+    enabled: false
+    host: localhost
+    port: 3310
+    connect-timeout: PT1S
+    read-timeout: PT1S
+  resume-analysis:
+    timeout: PT15S
+    worker-count: 2
+    queue-capacity: 20
+    max-pdf-pages: 100
+    max-text-length: 200000
   import:
     enabled: false

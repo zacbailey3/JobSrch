@@ -38,4 +38,27 @@ class ExperienceClassifierTests {
         assertThat(result.maximumYears()).isNull();
         assertThat(result.entryLevelLikely()).isTrue();
     }
+
+    @Test
+    void interpretsRomanNumeralEngineeringLevelsConservatively() {
+        var levelOne = classifier.classify(
+                "Software Engineer I",
+                "Join a product engineering team.");
+        var levelTwo = classifier.classify(
+                "Software Engineer II",
+                "Join a product engineering team.");
+        var levelThree = classifier.classify(
+                "Software Engineer III",
+                "Join a product engineering team.");
+        var levelFourWithLowYears = classifier.classify(
+                "Platform Engineer IV",
+                "Requires 2 years of experience.");
+
+        assertThat(levelOne.entryLevelLikely()).isTrue();
+        // Level II is not standardized across employers, so other evidence
+        // such as stated experience remains authoritative.
+        assertThat(levelTwo.entryLevelLikely()).isTrue();
+        assertThat(levelThree.entryLevelLikely()).isFalse();
+        assertThat(levelFourWithLowYears.entryLevelLikely()).isFalse();
+    }
 }

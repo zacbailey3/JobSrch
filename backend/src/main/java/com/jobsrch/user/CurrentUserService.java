@@ -21,9 +21,19 @@ public class CurrentUserService {
      * operations are scoped to the authenticated account.</p>
      */
     public UserAccount requireUser(Jwt jwt) {
-        return users.findByEmailIgnoreCase(jwt.getSubject())
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.UNAUTHORIZED,
-                        "Your session is no longer valid. Please sign in again."));
+        UserAccount user = users.findByEmailIgnoreCase(jwt.getSubject())
+                .orElseThrow(this::invalidSession);
+        Object claim = jwt.getClaim("securityVersion");
+        if (!(claim instanceof Number version)
+                || version.longValue() != user.getSecurityVersion()) {
+            throw invalidSession();
+        }
+        return user;
+    }
+
+    private ResponseStatusException invalidSession() {
+        return new ResponseStatusException(
+                HttpStatus.UNAUTHORIZED,
+                "Your session is no longer valid. Please sign in again.");
     }
 }

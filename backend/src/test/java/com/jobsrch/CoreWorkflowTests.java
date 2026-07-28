@@ -7,6 +7,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.Instant;
+import java.util.UUID;
 
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
@@ -18,6 +19,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.JwtClaimsSet;
+import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -58,6 +62,7 @@ import com.jobsrch.profile.ProfileService;
 import com.jobsrch.resume.ResumeResponse;
 import com.jobsrch.resume.ResumeService;
 import com.jobsrch.user.UserAccountRepository;
+import com.jobsrch.user.CurrentUserService;
 
 @SpringBootTest
 @Transactional
@@ -71,6 +76,9 @@ class CoreWorkflowTests {
 
     @Autowired
     private JwtDecoder jwtDecoder;
+
+    @Autowired
+    private JwtEncoder jwtEncoder;
 
     @Autowired
     private JobService jobService;
@@ -102,6 +110,9 @@ class CoreWorkflowTests {
     @Autowired
     private UserAccountRepository users;
 
+    @Autowired
+    private CurrentUserService currentUsers;
+
     @Test
     void userCanPermanentlyDeleteAccountAndOwnedData() {
         AuthResponse auth = authService.register(new RegisterRequest(
@@ -122,12 +133,31 @@ class CoreWorkflowTests {
     }
 
     @Test
+    void decoderRejectsTokenFromUnexpectedIssuer() {
+        Instant now = Instant.now();
+        String token = jwtEncoder.encode(JwtEncoderParameters.from(
+                JwtClaimsSet.builder()
+                        .issuer("unexpected-issuer")
+                        .subject("issuer-test@example.com")
+                        .issuedAt(now)
+                        .expiresAt(now.plusSeconds(300))
+                        .claim("userId", UUID.randomUUID().toString())
+                        .claim("securityVersion", 0)
+                        .build()))
+                .getTokenValue();
+
+        assertThatThrownBy(() -> jwtDecoder.decode(token))
+                .hasMessageContaining("iss claim is not valid");
+    }
+
+    @Test
     void userCanResetPasswordWithAOneTimeToken() {
-        authService.register(new RegisterRequest(
+        AuthResponse originalSession = authService.register(new RegisterRequest(
                 "reset@example.com",
                 "old-password",
                 "Reset",
                 "User"));
+        Jwt originalJwt = jwtDecoder.decode(originalSession.accessToken());
 
         PasswordResetResponse reset = passwordResetService.requestReset(
                 new PasswordResetRequest("reset@example.com"));
@@ -137,6 +167,8 @@ class CoreWorkflowTests {
                 reset.developmentResetToken(),
                 "new-password"));
 
+        assertThatThrownBy(() -> currentUsers.requireUser(originalJwt))
+                .hasMessageContaining("session is no longer valid");
         assertThat(authService.login(new LoginRequest(
                 "reset@example.com",
                 "new-password")).accessToken()).isNotBlank();
