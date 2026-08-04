@@ -131,22 +131,25 @@ control and DNS verification. Local development may keep
 ## Portfolio production
 
 Create a separate production environment file from `.env.example`; do not reuse
-the local `.env`. Replace every placeholder and use public HTTPS URLs:
+the local `.env`. `.env.production` is ignored by Git. Replace every placeholder
+and use public HTTPS URLs:
 
 ```powershell
 docker compose --env-file .env.production -f docker-compose.prod.yml config
 docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
 ```
 
-The production stack includes MySQL, ClamAV, the Spring API, and the Angular
-Nginx container. Spring activates the `prod` profile and refuses to start with
-development secrets, insecure origins/cookies, exposed reset tokens, or
-disabled malware scanning. ClamAV's initial virus-definition download may take
-several minutes.
+The production stack includes MySQL, the official multi-architecture ClamAV
+Debian image, the Spring API, and the Angular Nginx container. Spring activates
+the `prod` profile and refuses to start with development secrets, insecure
+origins/cookies, exposed reset tokens, or disabled malware scanning. ClamAV's
+initial virus-definition download may take several minutes.
 
-Terminate TLS in front of port `WEB_PORT` and keep the backend, database, and
-ClamAV ports private. Free hosting is appropriate for a portfolio deployment,
-but it does not replace tested backups or availability monitoring.
+The frontend publishes `WEB_PORT` on host loopback only. Terminate TLS with a
+host reverse proxy such as Caddy and proxy to `127.0.0.1:WEB_PORT`; do not expose
+that port through the cloud firewall. Keep the backend, database, and ClamAV
+ports private. Free hosting is appropriate for a portfolio deployment, but it
+does not replace tested backups or availability monitoring.
 
 See [docs/SECURITY.md](docs/SECURITY.md) for the authentication, CSRF, rate
 limiting, upload-validation, and deployment decisions.

@@ -103,6 +103,12 @@ environment file that is never copied from the local `.env`. The containers run
 with restricted capabilities; the backend and frontend filesystems are
 read-only except for declared resume and temporary volumes.
 
+Production Compose binds the frontend only to host loopback. Docker-published
+ports can bypass UFW rules, so the public cloud firewall must expose only the
+host HTTPS proxy on ports 80 and 443; port 8080, the backend, MySQL, and ClamAV
+remain private. A host Caddy service can proxy HTTPS traffic to
+`127.0.0.1:8080` without adding another container to the four-service app stack.
+
 HSTS is emitted by Nginx, but it only protects users when the public deployment
 actually terminates TLS and is accessed over HTTPS.
 
