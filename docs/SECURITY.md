@@ -108,6 +108,9 @@ ports can bypass UFW rules, so the public cloud firewall must expose only the
 host HTTPS proxy on ports 80 and 443; port 8080, the backend, MySQL, and ClamAV
 remain private. A host Caddy service can proxy HTTPS traffic to
 `127.0.0.1:8080` without adding another container to the four-service app stack.
+Nginx preserves Caddy's sanitized `X-Forwarded-Proto` value so Spring sees the
+original HTTPS request rather than the internal HTTP proxy hop. This is needed
+for scheme-aware security behavior such as the CSRF cookie.
 
 HSTS is emitted by Nginx, but it only protects users when the public deployment
 actually terminates TLS and is accessed over HTTPS.
