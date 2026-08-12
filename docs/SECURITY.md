@@ -16,6 +16,9 @@ metadata is not authorization. A missing or expired server cookie produces
 
 State-changing authenticated requests also require Spring Security's CSRF
 token. Spring writes `XSRF-TOKEN`; Angular echoes it as `X-XSRF-TOKEN`.
+Spring Security's SPA CSRF mode resolves Angular's plain header value while
+retaining BREACH protection for encoded tokens and ensures a fresh cookie is
+written when authentication or logout clears the previous token.
 Authentication and password-recovery endpoints are exempt because a visitor
 does not yet have a CSRF token when establishing or recovering a session.
 
@@ -23,7 +26,8 @@ The application installs the JWT authentication filter explicitly instead of
 using Spring's resource-server DSL. The DSL assumes bearer tokens do not use
 cookies and exempts them from CSRF checks; that assumption is incorrect for
 JobSrch. `SecurityHttpTests` verifies that an authenticated mutation without a
-valid CSRF token receives `403 Forbidden`.
+valid CSRF token receives `403 Forbidden` and that Angular's matching plain
+cookie/header pair authorizes a mutation.
 
 JWT signature, expiration, and issuer are validated. Every token also contains
 the user's `securityVersion`. A password reset increments the persisted

@@ -80,6 +80,23 @@ class SecurityHttpTests {
     }
 
     @Test
+    void angularPlainCsrfCookieAndHeaderAuthorizeMutation() throws Exception {
+        MockHttpServletResponse registration = registerResponse(
+                uniqueEmail(), "198.51.100.21");
+        Cookie session = registration.getCookie("JOBSRCH_SESSION");
+        Cookie csrfCookie = registration.getCookie("XSRF-TOKEN");
+        assertThat(session).isNotNull();
+        assertThat(csrfCookie).isNotNull();
+
+        mockMvc.perform(post("/api/jobs")
+                        .cookie(session, csrfCookie)
+                        .header("X-XSRF-TOKEN", csrfCookie.getValue())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jobJson()))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
     void oneUserCannotDeleteAnotherUsersJob() throws Exception {
         Cookie owner = register(uniqueEmail(), "198.51.100.30");
         Cookie attacker = register(uniqueEmail(), "198.51.100.31");
@@ -117,16 +134,20 @@ class SecurityHttpTests {
     }
 
     private Cookie register(String email, String remoteAddress) throws Exception {
-        MockHttpServletResponse response = mockMvc.perform(post("/api/auth/register")
+        MockHttpServletResponse response = registerResponse(email, remoteAddress);
+        Cookie cookie = response.getCookie("JOBSRCH_SESSION");
+        assertThat(cookie).isNotNull();
+        return cookie;
+    }
+
+    private MockHttpServletResponse registerResponse(String email, String remoteAddress) throws Exception {
+        return mockMvc.perform(post("/api/auth/register")
                         .with(remoteAddress(remoteAddress))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(registerJson(email)))
                 .andExpect(status().isCreated())
                 .andReturn()
                 .getResponse();
-        Cookie cookie = response.getCookie("JOBSRCH_SESSION");
-        assertThat(cookie).isNotNull();
-        return cookie;
     }
 
     private RequestPostProcessor remoteAddress(String address) {

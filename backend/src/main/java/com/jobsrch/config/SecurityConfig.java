@@ -27,7 +27,6 @@ import org.springframework.security.oauth2.server.resource.web.authentication.Be
 import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
-import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.web.cors.CorsConfiguration;
@@ -79,6 +78,11 @@ public class SecurityConfig {
         bearerFilter.setAuthenticationEntryPoint(new BearerTokenAuthenticationEntryPoint());
         return http
                 .csrf(csrf -> csrf
+                        // Angular reads the plain cookie value. Spring Security's
+                        // SPA mode accepts that header while retaining BREACH
+                        // protection for rendered/request-parameter tokens and
+                        // eagerly writes a fresh cookie when one is required.
+                        .spa()
                         .csrfTokenRepository(csrfRepository)
                         // These endpoints establish or recover authentication and
                         // therefore cannot require a pre-existing CSRF cookie.
@@ -87,7 +91,6 @@ public class SecurityConfig {
                                 "/api/auth/register",
                                 "/api/auth/password-reset/request",
                                 "/api/auth/password-reset/confirm"))
-                .addFilterAfter(new CsrfCookieFilter(), CsrfFilter.class)
                 // Spring's resource-server DSL assumes bearer tokens are never
                 // cookies and therefore excludes them from CSRF. The explicit
                 // filter keeps JWT authentication while preserving cookie CSRF.
