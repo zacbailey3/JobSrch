@@ -21,12 +21,8 @@ services:
     restart: unless-stopped
     volumes:
       - jobsrch-clamav-data:/var/lib/clamav
-    healthcheck:
-      test: ["CMD-SHELL", "clamdscan --ping 1 --wait"]
-      interval: 15s
-      timeout: 10s
-      retries: 20
-      start_period: 90s
+    # Retain the official image health check, which pings clamd with its
+    # bundled clamdcheck.sh script and accounts for database load time.
     mem_limit: 2g
 
   backend:
