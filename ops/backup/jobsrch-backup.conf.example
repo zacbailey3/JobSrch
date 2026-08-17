@@ -1,0 +1,7 @@
+# Copy to /etc/jobsrch-backup.conf, replace each placeholder, and set mode 600.
+# The age recipient is public. Keep the matching AGE-SECRET-KEY off the VM.
+AGE_RECIPIENT=age1replace_with_your_public_recipient
+OCI_NAMESPACE=replace_with_your_object_storage_namespace
+OCI_BUCKET_NAME=jobsrch-backups
+OCI_OBJECT_PREFIX=daily
+LOCAL_RETENTION_DAYS=7

@@ -135,7 +135,11 @@ updates without passing tests.
 
 ## Remaining launch work
 
-- Publish a reviewed privacy policy and choose explicit backup-retention periods.
+- Production backup retention is seven daily encrypted copies on the VM and 30
+  daily encrypted copies in private OCI Object Storage. Deleted account or
+  resume data can remain in those backups for at most 30 days. Follow
+  `docs/BACKUPS.md` for setup and restoration testing.
+- Publish a reviewed privacy policy that discloses the backup-retention period.
 - Replace the in-memory limiter if multiple backend replicas are deployed.
 - Store resumes in private object storage if the local volume becomes difficult
   to back up or the backend is replicated.

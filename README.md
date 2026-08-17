@@ -153,6 +153,8 @@ does not replace tested backups or availability monitoring.
 
 See [docs/SECURITY.md](docs/SECURITY.md) for the authentication, CSRF, rate
 limiting, upload-validation, and deployment decisions.
+See [docs/BACKUPS.md](docs/BACKUPS.md) for encrypted production backups,
+retention, OCI Object Storage setup, and isolated restoration testing.
 
 ## Verification
 
