@@ -5,7 +5,7 @@ COPY pom.xml .
 COPY src ./src
 RUN mvn -B -DskipTests package
 
-FROM eclipse-temurin:25-jre
+FROM eclipse-temurin:26-jre
 
 WORKDIR /app
 RUN groupadd --system jobsrch \
