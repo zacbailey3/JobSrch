@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { App } from './app';
-import { DiscoveredJob, JobApplication } from './core/api.service';
+import { DiscoveredJob, Job, JobApplication } from './core/api.service';
 
 describe('App', () => {
   beforeEach(async () => {
@@ -77,6 +77,74 @@ describe('App', () => {
     expect(app.statusLabel('APPLIED')).toBe('Awaiting response');
     expect(app.manualApplicationStatuses.map(status => status.value))
       .toEqual(['APPLIED', 'INTERVIEW', 'OFFER', 'REJECTED', 'WITHDRAWN']);
+  });
+
+  it('prefills the application pipeline from a saved job', () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    const job: Job = {
+      id: 'saved-job-1',
+      company: 'Example Company',
+      title: 'Junior Developer',
+      location: 'Remote',
+      description: 'Build software',
+      sourceUrl: 'https://jobs.example.com/junior-developer',
+      experienceMin: 0,
+      experienceMax: 2,
+      publishedAt: null,
+      createdAt: '2026-06-09T00:00:00Z'
+    };
+
+    app.trackSavedJob(job);
+
+    expect(app.view()).toBe('applications');
+    expect(app.newApplication).toEqual({
+      jobPostingId: job.id,
+      company: job.company,
+      title: job.title,
+      sourceUrl: job.sourceUrl,
+      status: 'APPLIED',
+      appliedAt: app.newApplication.appliedAt,
+      notes: ''
+    });
+    expect(app.newApplication.appliedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(app.success()).toContain('Confirm its date and current stage');
+  });
+
+  it('recognizes a saved job that is already in the application pipeline', () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    const job: Job = {
+      id: 'saved-job-1',
+      company: 'Example Company',
+      title: 'Junior Developer',
+      location: null,
+      description: null,
+      sourceUrl: 'https://jobs.example.com/junior-developer',
+      experienceMin: null,
+      experienceMax: null,
+      publishedAt: null,
+      createdAt: '2026-06-09T00:00:00Z'
+    };
+    const application: JobApplication = {
+      id: 'application-1',
+      jobPostingId: job.id,
+      company: job.company,
+      title: job.title,
+      sourceUrl: job.sourceUrl,
+      status: 'INTERVIEW',
+      appliedAt: '2026-06-09',
+      notes: null,
+      createdAt: '2026-06-09T00:00:00Z',
+      updatedAt: '2026-06-10T00:00:00Z'
+    };
+
+    app.applications.set([application]);
+
+    expect(app.applicationForSavedJob(job)).toBe(application);
+    app.trackSavedJob(job);
+    expect(app.view()).toBe('applications');
+    expect(app.success()).toContain('already tracked as Interview');
   });
 
   it('renders the manual application fields and outcome choices', () => {

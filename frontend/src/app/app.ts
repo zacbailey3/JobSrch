@@ -323,6 +323,38 @@ export class App implements OnInit {
     });
   }
 
+  applicationForSavedJob(job: Job): JobApplication | undefined {
+    return this.applications().find(application =>
+      application.jobPostingId === job.id || this.sameOpportunity(
+        application.company,
+        application.title,
+        application.sourceUrl,
+        job.company,
+        job.title,
+        job.sourceUrl));
+  }
+
+  trackSavedJob(job: Job): void {
+    const existingApplication = this.applicationForSavedJob(job);
+    this.selectView('applications');
+    if (existingApplication) {
+      this.success.set(
+        `${job.title} is already tracked as ${this.statusLabel(existingApplication.status)}.`);
+      return;
+    }
+
+    this.newApplication = {
+      jobPostingId: job.id,
+      company: job.company,
+      title: job.title,
+      sourceUrl: job.sourceUrl ?? '',
+      status: 'APPLIED',
+      appliedAt: new Date().toISOString().slice(0, 10),
+      notes: ''
+    };
+    this.success.set('Saved role ready. Confirm its date and current stage, then add it to your pipeline.');
+  }
+
   analyzeJob(job: Job): void {
     const resume = this.resumes()[0];
     if (!resume) {

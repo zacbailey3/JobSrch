@@ -15,7 +15,7 @@ experience.
 
 - Email/password registration and login
 - User-owned saved jobs with entry-level experience ranges
-- Application pipeline with status updates
+- Application pipeline with status updates and saved-role handoff
 - Readable candidate profile with a separate editing mode
 - PDF/DOCX resume upload with safe server-side filenames
 - Explainable local resume-to-job matching with improvement suggestions

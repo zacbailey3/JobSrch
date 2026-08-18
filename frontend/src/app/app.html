@@ -213,6 +213,15 @@
                     </div>
                   </div>
                   <div class="job-actions">
+                    @if (applicationForSavedJob(job); as application) {
+                      <button class="pipeline-action" type="button" (click)="trackSavedJob(job)">
+                        View in pipeline - {{ statusLabel(application.status) }}
+                      </button>
+                    } @else {
+                      <button class="pipeline-action" type="button" (click)="trackSavedJob(job)">
+                        Add to pipeline
+                      </button>
+                    }
                     @if (job.sourceUrl) {
                       <a [href]="job.sourceUrl" target="_blank" rel="noreferrer">View role</a>
                     }
@@ -220,7 +229,9 @@
                       [disabled]="analyzingJobId() === job.id">
                       {{ analyzingJobId() === job.id ? 'Analyzing...' : 'Analyze resume' }}
                     </button>
-                    <button type="button" (click)="deleteJob(job.id)">Remove</button>
+                    <button class="remove-job-action" type="button" (click)="deleteJob(job.id)">
+                      Remove
+                    </button>
                   </div>
                   @if (analyses()[job.id]; as analysis) {
                     <div class="analysis-result">
@@ -633,11 +644,19 @@
           </section>
 
           <aside class="panel add-panel">
-            <p class="eyebrow">Manual entry</p>
-            <h2>Record an application</h2>
-            <p class="muted">
-              Add a role you applied to outside JobSrch and keep its outcome in your pipeline.
-            </p>
+            @if (newApplication.jobPostingId) {
+              <p class="eyebrow">Saved opportunity</p>
+              <h2>Add this role to your pipeline</h2>
+              <p class="muted">
+                Confirm when you applied and choose its current stage before adding it.
+              </p>
+            } @else {
+              <p class="eyebrow">Manual entry</p>
+              <h2>Record an application</h2>
+              <p class="muted">
+                Add a role you applied to outside JobSrch and keep its outcome in your pipeline.
+              </p>
+            }
             <form (ngSubmit)="addApplication(applicationForm)" #applicationForm="ngForm">
               <label>
                 Position
@@ -679,7 +698,7 @@
                   placeholder="Recruiter name, next step, or follow-up date"></textarea>
               </label>
               <button class="primary-button" type="submit" [disabled]="applicationForm.invalid || loading()">
-                Add application
+                {{ newApplication.jobPostingId ? 'Add to pipeline' : 'Add application' }}
               </button>
             </form>
           </aside>
