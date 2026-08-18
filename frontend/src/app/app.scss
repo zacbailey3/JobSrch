@@ -551,7 +551,7 @@ button,
   border-radius: 15px;
   display: grid;
   gap: 1rem;
-  grid-template-columns: minmax(0, 1fr) 150px auto;
+  grid-template-columns: minmax(0, 1fr) 170px;
   padding: 1rem;
 }
 
@@ -586,12 +586,9 @@ button,
   white-space: pre-wrap;
 }
 
-.status-control {
-  font-size: 0.7rem;
-}
-
-.status-control select {
-  padding: 0.62rem;
+.application-actions {
+  display: grid;
+  gap: 0.6rem;
 }
 
 .application-status-fieldset {
@@ -654,7 +651,10 @@ button,
   font-weight: 600;
 }
 
-.remove-button,
+.remove-button {
+  color: #8b625b;
+}
+
 .resume-card button {
   background: transparent;
   border: 0;

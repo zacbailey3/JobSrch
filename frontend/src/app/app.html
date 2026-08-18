@@ -619,20 +619,23 @@
                       <p class="application-notes">{{ application.notes }}</p>
                     }
                   </div>
-                  <label class="status-control">
-                    Status
-                    <select
-                      [ngModel]="application.status"
-                      (ngModelChange)="updateApplicationStatus(application, $event)"
-                      [name]="'status-' + application.id">
-                      @for (status of applicationStatuses; track status) {
-                        <option [value]="status">{{ statusLabel(status) }}</option>
-                      }
-                    </select>
-                  </label>
-                  <button class="remove-button" type="button" (click)="deleteApplication(application.id)">
-                    Remove
-                  </button>
+                  <div class="application-actions">
+                    <label class="status-control">
+                      Status
+                      <select
+                        [ngModel]="application.status"
+                        (ngModelChange)="updateApplicationStatus(application, $event)"
+                        [name]="'status-' + application.id">
+                        @for (status of applicationStatuses; track status) {
+                          <option [value]="status">{{ statusLabel(status) }}</option>
+                        }
+                      </select>
+                    </label>
+                    <button class="secondary-button remove-button" type="button"
+                      (click)="deleteApplication(application.id)">
+                      Remove
+                    </button>
+                  </div>
                 </article>
               } @empty {
                 <div class="empty-state">
