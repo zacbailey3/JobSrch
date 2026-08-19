@@ -144,18 +144,21 @@ echo "Starting isolated MySQL restoration container"
     mysql:8.4 >/dev/null
 
 mysql_ready=0
+mysql_ready_result=""
 for _ in {1..60}; do
-    if /usr/bin/docker exec \
+    if mysql_ready_result="$(/usr/bin/docker exec \
             --env "MYSQL_PWD=${root_password}" \
             "$container_name" \
-            mysqladmin --user=root ping --silent >/dev/null 2>&1; then
+            mysql --user=root --batch --skip-column-names \
+            --execute "SELECT 1" 2>/dev/null)" &&
+       [[ "$mysql_ready_result" == "1" ]]; then
         mysql_ready=1
         break
     fi
     /usr/bin/sleep 2
 done
 if (( mysql_ready != 1 )); then
-    echo "Temporary MySQL container did not become ready" >&2
+    echo "Temporary MySQL container did not accept authenticated connections" >&2
     exit 1
 fi
 
