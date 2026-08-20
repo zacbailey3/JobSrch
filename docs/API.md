@@ -14,12 +14,16 @@ object keyed by field name.
 | --- | --- | --- | --- |
 | `POST` | `/api/auth/register` | No | Create an account and set the session cookie |
 | `POST` | `/api/auth/login` | No | Verify credentials and set the session cookie |
+| `GET` | `/api/auth/session` | Yes | Restore browser-safe account metadata from the session cookie |
 | `POST` | `/api/auth/logout` | Yes | Expire the session cookie |
 | `POST` | `/api/auth/password-reset/request` | No | Request a one-time reset link |
 | `POST` | `/api/auth/password-reset/confirm` | No | Consume a reset token and set a new password |
 | `DELETE` | `/api/account` | Yes | Password-confirmed permanent account and user-data deletion |
 
 Registration fields: `email`, `password`, `firstName`, `lastName`.
+
+The session response contains `expiresIn`, `userId`, `email`, `firstName`, and
+`lastName`. It never contains the JWT or cookie value.
 
 ## Dashboard
 

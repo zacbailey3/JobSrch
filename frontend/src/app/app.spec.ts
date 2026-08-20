@@ -1,131 +1,125 @@
-import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { TestBed } from '@angular/core/testing';
+import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router';
+import { vi } from 'vitest';
+
 import { App } from './app';
+import { ApplicationsPage } from './applications/applications-page';
+import { AuthPage } from './auth/auth-page';
 import { DiscoveredJob, Job, JobApplication } from './core/api.service';
+import { DiscoveryPage } from './discovery/discovery-page';
+import { WorkspaceStore } from './workspace/workspace.store';
 
 describe('App', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [App],
-      providers: [provideHttpClient()],
+      providers: [provideRouter([])]
     }).compileComponents();
   });
 
-  it('should create the app', () => {
-    const fixture = TestBed.createComponent(App);
-    const app = fixture.componentInstance;
-    expect(app).toBeTruthy();
+  it('creates the router host', () => {
+    expect(TestBed.createComponent(App).componentInstance).toBeTruthy();
+  });
+});
+
+describe('AuthPage', () => {
+  const router = {
+    navigate: vi.fn().mockResolvedValue(true),
+    navigateByUrl: vi.fn().mockResolvedValue(true)
+  };
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [AuthPage],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: Router, useValue: router },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: { queryParamMap: convertToParamMap({}) }
+          }
+        }
+      ]
+    }).compileComponents();
+    router.navigate.mockClear();
+    router.navigateByUrl.mockClear();
   });
 
-  it('should render the product name', async () => {
-    const fixture = TestBed.createComponent(App);
-    await fixture.whenStable();
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.textContent).toContain('JobSrch');
+  it('renders the product name', () => {
+    const fixture = TestBed.createComponent(AuthPage);
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('JobSrch');
   });
 
   it('shows the password recovery form from sign in', () => {
-    const fixture = TestBed.createComponent(App);
-    const app = fixture.componentInstance;
-
-    app.showForgotPassword();
+    const fixture = TestBed.createComponent(AuthPage);
+    fixture.componentInstance.showForgotPassword();
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.textContent).toContain('Reset your password');
     expect(compiled.querySelector('[name="resetEmail"]')).not.toBeNull();
   });
+});
 
-  it('starts discovery with US and recent-job defaults', () => {
-    const fixture = TestBed.createComponent(App);
-    const app = fixture.componentInstance;
+describe('WorkspaceStore', () => {
+  const router = {
+    navigate: vi.fn().mockResolvedValue(true)
+  };
+  let workspace: WorkspaceStore;
 
-    expect(app.discoverySearch.countryCode).toBe('US');
-    expect(app.discoverySearch.postedWithinDays).toBe(30);
-    expect(app.discoverySearch.sort).toBe('RELEVANCE');
-    expect(app.discoverySearch.maximumExperience).toBe(3);
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: Router, useValue: router }
+      ]
+    });
+    workspace = TestBed.inject(WorkspaceStore);
+    router.navigate.mockClear();
   });
 
-  it('keeps the discovery form focused on non-redundant filters', () => {
-    const fixture = TestBed.createComponent(App);
-    fixture.detectChanges();
-    const app = fixture.componentInstance;
-    app.auth.session.set({
-      expiresIn: 3600,
-      userId: 'test-user',
-      email: 'student@example.com',
-      firstName: 'Student',
-      lastName: 'Developer'
-    });
-    app.view.set('discover');
-    fixture.detectChanges();
-
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('[name="careerStage"]')).toBeNull();
-    expect(compiled.querySelector('[name="degreeRequirement"]')).toBeNull();
-    expect(compiled.querySelector('[name="sponsorshipStatus"]')).toBeNull();
-    expect(compiled.querySelector('[name="companyIdentifier"]')).toBeNull();
-    expect(compiled.querySelector('[name="maximumExperience"]')).not.toBeNull();
+  it('starts discovery with US and recent-job defaults', () => {
+    expect(workspace.discoverySearch.countryCode).toBe('US');
+    expect(workspace.discoverySearch.postedWithinDays).toBe(30);
+    expect(workspace.discoverySearch.sort).toBe('RELEVANCE');
+    expect(workspace.discoverySearch.maximumExperience).toBe(3);
   });
 
   it('starts a manual application as applied and awaiting response', () => {
-    const fixture = TestBed.createComponent(App);
-    const app = fixture.componentInstance;
-
-    expect(app.newApplication.status).toBe('APPLIED');
-    expect(app.newApplication.appliedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    expect(app.statusLabel('APPLIED')).toBe('Awaiting response');
-    expect(app.manualApplicationStatuses.map(status => status.value))
+    expect(workspace.newApplication.status).toBe('APPLIED');
+    expect(workspace.newApplication.appliedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(workspace.statusLabel('APPLIED')).toBe('Awaiting response');
+    expect(workspace.manualApplicationStatuses.map(status => status.value))
       .toEqual(['APPLIED', 'INTERVIEW', 'OFFER', 'REJECTED', 'WITHDRAWN']);
   });
 
   it('prefills the application pipeline from a saved job', () => {
-    const fixture = TestBed.createComponent(App);
-    const app = fixture.componentInstance;
-    const job: Job = {
-      id: 'saved-job-1',
-      company: 'Example Company',
-      title: 'Junior Developer',
-      location: 'Remote',
-      description: 'Build software',
-      sourceUrl: 'https://jobs.example.com/junior-developer',
-      experienceMin: 0,
-      experienceMax: 2,
-      publishedAt: null,
-      createdAt: '2026-06-09T00:00:00Z'
-    };
+    const job: Job = savedJob();
 
-    app.trackSavedJob(job);
+    workspace.trackSavedJob(job);
 
-    expect(app.view()).toBe('applications');
-    expect(app.newApplication).toEqual({
+    expect(router.navigate).toHaveBeenCalledWith(['/', 'applications']);
+    expect(workspace.newApplication).toEqual({
       jobPostingId: job.id,
       company: job.company,
       title: job.title,
       sourceUrl: job.sourceUrl,
       status: 'APPLIED',
-      appliedAt: app.newApplication.appliedAt,
+      appliedAt: workspace.newApplication.appliedAt,
       notes: ''
     });
-    expect(app.newApplication.appliedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    expect(app.success()).toContain('Confirm its date and current stage');
+    expect(workspace.success()).toContain('Confirm its date and current stage');
   });
 
-  it('recognizes a saved job that is already in the application pipeline', () => {
-    const fixture = TestBed.createComponent(App);
-    const app = fixture.componentInstance;
-    const job: Job = {
-      id: 'saved-job-1',
-      company: 'Example Company',
-      title: 'Junior Developer',
-      location: null,
-      description: null,
-      sourceUrl: 'https://jobs.example.com/junior-developer',
-      experienceMin: null,
-      experienceMax: null,
-      publishedAt: null,
-      createdAt: '2026-06-09T00:00:00Z'
-    };
+  it('recognizes a saved job already in the application pipeline', () => {
+    const job = savedJob();
     const application: JobApplication = {
       id: 'application-1',
       jobPostingId: job.id,
@@ -138,45 +132,14 @@ describe('App', () => {
       createdAt: '2026-06-09T00:00:00Z',
       updatedAt: '2026-06-10T00:00:00Z'
     };
+    workspace.applications.set([application]);
 
-    app.applications.set([application]);
-
-    expect(app.applicationForSavedJob(job)).toBe(application);
-    app.trackSavedJob(job);
-    expect(app.view()).toBe('applications');
-    expect(app.success()).toContain('already tracked as Interview');
-  });
-
-  it('renders the manual application fields and outcome choices', () => {
-    const fixture = TestBed.createComponent(App);
-    fixture.detectChanges();
-    const app = fixture.componentInstance;
-    app.auth.session.set({
-      expiresIn: 3600,
-      userId: 'test-user',
-      email: 'student@example.com',
-      firstName: 'Student',
-      lastName: 'Developer'
-    });
-    app.view.set('applications');
-    fixture.detectChanges();
-
-    const compiled = fixture.nativeElement as HTMLElement;
-    const dateInput = compiled.querySelector<HTMLInputElement>(
-      'input[name="appliedAt"]');
-    const urlInput = compiled.querySelector<HTMLInputElement>(
-      'input[name="applicationUrl"]');
-
-    expect(compiled.textContent).toContain('Record an application');
-    expect(compiled.textContent).toContain('Have you heard from them?');
-    expect(compiled.querySelectorAll('input[name="applicationStatus"]')).toHaveLength(5);
-    expect(dateInput?.required).toBe(true);
-    expect(urlInput?.required).toBe(false);
+    expect(workspace.applicationForSavedJob(job)).toBe(application);
+    workspace.trackSavedJob(job);
+    expect(workspace.success()).toContain('already tracked as Interview');
   });
 
   it('hides discovered roles already recorded as applied', () => {
-    const fixture = TestBed.createComponent(App);
-    const app = fixture.componentInstance;
     const discovered: DiscoveredJob = {
       externalId: 'job-1',
       provider: 'LEVER',
@@ -200,7 +163,8 @@ describe('App', () => {
       matchReasons: ['The title explicitly uses a junior or entry-level label.'],
       cautions: ['Visa sponsorship is not specified.']
     };
-    const application: JobApplication = {
+    workspace.discoveryResults.set([discovered]);
+    workspace.applications.set([{
       id: 'application-1',
       jobPostingId: null,
       company: 'Example',
@@ -211,20 +175,15 @@ describe('App', () => {
       notes: null,
       createdAt: '2026-06-09T00:00:00Z',
       updatedAt: '2026-06-09T00:00:00Z'
-    };
+    }]);
 
-    app.discoveryResults.set([discovered]);
-    app.applications.set([application]);
-
-    expect(app.visibleDiscoveryResults()).toHaveLength(0);
-    app.hideAppliedDiscovery.set(false);
-    expect(app.visibleDiscoveryResults()).toEqual([discovered]);
+    expect(workspace.visibleDiscoveryResults()).toHaveLength(0);
+    workspace.hideAppliedDiscovery.set(false);
+    expect(workspace.visibleDiscoveryResults()).toEqual([discovered]);
   });
 
   it('restores saved profile details when editing is cancelled', () => {
-    const fixture = TestBed.createComponent(App);
-    const app = fixture.componentInstance;
-    app.savedProfile.set({
+    workspace.savedProfile.set({
       phone: null,
       location: 'Chicago',
       headline: 'New graduate developer',
@@ -238,11 +197,61 @@ describe('App', () => {
       updatedAt: null
     });
 
-    app.startProfileEdit();
-    app.profile.headline = 'Unsaved change';
-    app.cancelProfileEdit();
+    workspace.startProfileEdit();
+    workspace.profile.headline = 'Unsaved change';
+    workspace.cancelProfileEdit();
 
-    expect(app.profileMode()).toBe('view');
-    expect(app.profile.headline).toBe('New graduate developer');
+    expect(workspace.profileMode()).toBe('view');
+    expect(workspace.profile.headline).toBe('New graduate developer');
   });
 });
+
+describe('Routed workspace pages', () => {
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      imports: [DiscoveryPage, ApplicationsPage],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])]
+    });
+  });
+
+  it('keeps discovery focused on non-redundant filters', () => {
+    const fixture = TestBed.createComponent(DiscoveryPage);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(compiled.querySelector('[name="careerStage"]')).toBeNull();
+    expect(compiled.querySelector('[name="degreeRequirement"]')).toBeNull();
+    expect(compiled.querySelector('[name="sponsorshipStatus"]')).toBeNull();
+    expect(compiled.querySelector('[name="companyIdentifier"]')).toBeNull();
+    expect(compiled.querySelector('[name="maximumExperience"]')).not.toBeNull();
+  });
+
+  it('renders the manual application fields and outcome choices', () => {
+    const fixture = TestBed.createComponent(ApplicationsPage);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const dateInput = compiled.querySelector<HTMLInputElement>('input[name="appliedAt"]');
+    const urlInput = compiled.querySelector<HTMLInputElement>('input[name="applicationUrl"]');
+
+    expect(compiled.textContent).toContain('Record an application');
+    expect(compiled.textContent).toContain('Have you heard from them?');
+    expect(compiled.querySelectorAll('input[name="applicationStatus"]')).toHaveLength(5);
+    expect(dateInput?.required).toBe(true);
+    expect(urlInput?.required).toBe(false);
+  });
+});
+
+function savedJob(): Job {
+  return {
+    id: 'saved-job-1',
+    company: 'Example Company',
+    title: 'Junior Developer',
+    location: 'Remote',
+    description: 'Build software',
+    sourceUrl: 'https://jobs.example.com/junior-developer',
+    experienceMin: 0,
+    experienceMax: 2,
+    publishedAt: null,
+    createdAt: '2026-06-09T00:00:00Z'
+  };
+}

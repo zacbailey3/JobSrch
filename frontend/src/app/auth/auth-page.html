@@ -1,0 +1,127 @@
+<div class="app-shell">
+  <header class="topbar">
+    <a class="brand" routerLink="/login">
+      <span class="brand-mark">J</span>
+      <span>JobSrch</span>
+    </a>
+  </header>
+
+  <main class="auth-layout">
+    <section class="hero">
+      <p class="eyebrow">Built for the start of your career</p>
+      <h1>Find roles that match your experience, not someone else's.</h1>
+      <p class="hero-copy">
+        Discover entry-level opportunities, organize every application, and
+        shape your resume around the work you actually want.
+      </p>
+      <div class="feature-row">
+        <span>0-3 year focus</span>
+        <span>Application tracking</span>
+        <span>Resume matching</span>
+      </div>
+    </section>
+
+    <section class="auth-card">
+      @if (authMode() === 'forgot') {
+        <p class="eyebrow">Account recovery</p>
+        <h2>Reset your password</h2>
+        <p class="auth-description">Enter the email used for your JobSrch account.</p>
+        <form (ngSubmit)="requestPasswordReset()" #forgotForm="ngForm">
+          <label>
+            Email
+            <input type="email" name="resetEmail" [(ngModel)]="passwordReset.email"
+              required email />
+          </label>
+          @if (error()) {
+            <p class="error-message">{{ error() }}</p>
+          }
+          @if (success()) {
+            <p class="success-message">{{ success() }}</p>
+          }
+          <button class="primary-button" type="submit"
+            [disabled]="forgotForm.invalid || loading()">
+            {{ loading() ? 'Working...' : 'Continue' }}
+          </button>
+        </form>
+        <button class="text-button" type="button" (click)="showLogin()">Back to sign in</button>
+      } @else if (authMode() === 'reset') {
+        <p class="eyebrow">Account recovery</p>
+        <h2>Choose a new password</h2>
+        <p class="auth-description">
+          This local-development reset code expires after 15 minutes.
+        </p>
+        <form (ngSubmit)="submitPasswordReset()" #resetForm="ngForm">
+          <label>
+            Reset code
+            <input name="resetToken" [(ngModel)]="passwordReset.token" required />
+          </label>
+          <label>
+            New password
+            <input type="password" name="resetPassword"
+              [(ngModel)]="passwordReset.password" required minlength="8" />
+          </label>
+          <label>
+            Confirm password
+            <input type="password" name="confirmResetPassword"
+              [(ngModel)]="passwordReset.confirmPassword" required minlength="8" />
+          </label>
+          @if (error()) {
+            <p class="error-message">{{ error() }}</p>
+          }
+          @if (success()) {
+            <p class="success-message">{{ success() }}</p>
+          }
+          <button class="primary-button" type="submit"
+            [disabled]="resetForm.invalid || loading()">
+            {{ loading() ? 'Updating...' : 'Update password' }}
+          </button>
+        </form>
+        <button class="text-button" type="button" (click)="showLogin()">Cancel</button>
+      } @else {
+        <p class="eyebrow">{{ authMode() === 'login' ? 'Welcome back' : 'Create your workspace' }}</p>
+        <h2>{{ authMode() === 'login' ? 'Sign in to continue' : 'Start your search' }}</h2>
+
+        <form (ngSubmit)="submitAuth()" #authForm="ngForm">
+          @if (authMode() === 'register') {
+            <div class="two-column">
+              <label>
+                First name
+                <input name="firstName" [(ngModel)]="credentials.firstName" required />
+              </label>
+              <label>
+                Last name
+                <input name="lastName" [(ngModel)]="credentials.lastName" required />
+              </label>
+            </div>
+          }
+          <label>
+            Email
+            <input type="email" name="email" [(ngModel)]="credentials.email" required email />
+          </label>
+          <label>
+            Password
+            <input type="password" name="password" [(ngModel)]="credentials.password"
+              required minlength="8" />
+          </label>
+          @if (error()) {
+            <p class="error-message">{{ error() }}</p>
+          }
+          @if (success()) {
+            <p class="success-message">{{ success() }}</p>
+          }
+          <button class="primary-button" type="submit" [disabled]="authForm.invalid || loading()">
+            {{ loading() ? 'Working...' : (authMode() === 'login' ? 'Sign in' : 'Create account') }}
+          </button>
+        </form>
+
+        @if (authMode() === 'login') {
+          <button class="text-button compact-text-button" type="button"
+            (click)="showForgotPassword()">Forgot password?</button>
+        }
+        <button class="text-button" type="button" (click)="toggleAuthMode()">
+          {{ authMode() === 'login' ? 'New here? Create an account' : 'Already have an account? Sign in' }}
+        </button>
+      }
+    </section>
+  </main>
+</div>

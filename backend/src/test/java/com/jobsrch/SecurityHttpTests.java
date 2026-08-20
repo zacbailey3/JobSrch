@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 import java.util.UUID;
 import java.util.regex.Matcher;
@@ -44,6 +45,25 @@ class SecurityHttpTests {
     void anonymousDomainRequestIsRejected() throws Exception {
         mockMvc.perform(get("/api/jobs"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void authenticatedSessionReturnsBrowserSafeAccountMetadata() throws Exception {
+        String email = uniqueEmail();
+        Cookie session = register(email, "198.51.100.9");
+
+        String response = mockMvc.perform(get("/api/auth/session").cookie(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value(email))
+                .andExpect(jsonPath("$.firstName").value("Security"))
+                .andExpect(jsonPath("$.lastName").value("Tester"))
+                .andExpect(jsonPath("$.userId").isNotEmpty())
+                .andExpect(jsonPath("$.expiresIn").isNumber())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertThat(response).doesNotContain("accessToken").doesNotContain("JOBSRCH_SESSION");
     }
 
     @Test

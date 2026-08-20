@@ -2,6 +2,8 @@ package com.jobsrch.auth;
 
 import java.util.UUID;
 
+import com.jobsrch.user.UserAccount;
+
 /**
  * Safe browser-visible account data. The JWT is deliberately excluded because
  * it is delivered only in an HttpOnly cookie.
@@ -20,5 +22,14 @@ public record SessionResponse(
                 response.email(),
                 response.firstName(),
                 response.lastName());
+    }
+
+    static SessionResponse from(UserAccount user, long expiresIn) {
+        return new SessionResponse(
+                expiresIn,
+                user.getId(),
+                user.getEmail(),
+                user.getFirstName(),
+                user.getLastName());
     }
 }

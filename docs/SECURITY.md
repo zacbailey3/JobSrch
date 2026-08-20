@@ -10,9 +10,11 @@ Angular. `AuthController` places it in the `JOBSRCH_SESSION` cookie with:
 - `SameSite=Strict`, so cross-site requests do not include it;
 - a lifetime matching the JWT lifetime.
 
-Angular stores only display metadata such as the user's name and email. That
-metadata is not authorization. A missing or expired server cookie produces
-`401 Unauthorized`, and the frontend clears its local display state.
+Angular keeps display metadata such as the user's name and email only in
+memory. On refresh, protected route guards restore it through
+`GET /api/auth/session`; that endpoint validates the HttpOnly cookie and never
+returns the JWT. A missing or expired server cookie produces `401 Unauthorized`,
+and the frontend clears its display state and returns to login.
 
 State-changing authenticated requests also require Spring Security's CSRF
 token. Spring writes `XSRF-TOKEN`; Angular echoes it as `X-XSRF-TOKEN`.

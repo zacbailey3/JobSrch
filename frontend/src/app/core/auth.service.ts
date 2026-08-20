@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, signal } from '@angular/core';
-import { Observable, tap } from 'rxjs';
+import { catchError, finalize, Observable, of, shareReplay, tap } from 'rxjs';
 
 export interface AuthResponse {
   expiresIn: number;
@@ -27,26 +27,49 @@ export interface PasswordResetResponse {
  * Owns browser-visible account state. The backend stores the JWT in an
  * HttpOnly cookie, so Angular cannot read or accidentally expose it.
  *
- * Local storage contains display metadata only; it is not proof that the
- * server-side cookie is still valid. Any 401 response clears this state.
+ * Browser-visible metadata is restored from the protected session endpoint.
+ * The HttpOnly cookie remains the only durable authentication credential.
  */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly storageKey = 'jobsrch-session';
-  readonly session = signal<AuthResponse | null>(this.readSession());
+  readonly session = signal<AuthResponse | null>(null);
+  readonly sessionChecked = signal(false);
+  private restoreRequest?: Observable<AuthResponse | null>;
 
   constructor(private readonly http: HttpClient) {}
 
   login(email: string, password: string): Observable<AuthResponse> {
     return this.http.post<AuthResponse>('/api/auth/login', { email, password }).pipe(
-      tap(session => this.storeSession(session))
+      tap(session => this.setSession(session))
     );
   }
 
   register(request: RegisterRequest): Observable<AuthResponse> {
     return this.http.post<AuthResponse>('/api/auth/register', request).pipe(
-      tap(session => this.storeSession(session))
+      tap(session => this.setSession(session))
     );
+  }
+
+  restoreSession(): Observable<AuthResponse | null> {
+    if (this.sessionChecked()) {
+      return of(this.session());
+    }
+    if (this.restoreRequest) {
+      return this.restoreRequest;
+    }
+    this.restoreRequest = this.http.get<AuthResponse>('/api/auth/session').pipe(
+      tap(session => this.session.set(session)),
+      catchError(() => {
+        this.session.set(null);
+        return of(null);
+      }),
+      finalize(() => {
+        this.sessionChecked.set(true);
+        this.restoreRequest = undefined;
+      }),
+      shareReplay({ bufferSize: 1, refCount: false })
+    );
+    return this.restoreRequest;
   }
 
   requestPasswordReset(email: string): Observable<PasswordResetResponse> {
@@ -69,25 +92,12 @@ export class AuthService {
   }
 
   clearSession(): void {
-    localStorage.removeItem(this.storageKey);
     this.session.set(null);
+    this.sessionChecked.set(true);
   }
 
-  private storeSession(session: AuthResponse): void {
-    localStorage.setItem(this.storageKey, JSON.stringify(session));
+  private setSession(session: AuthResponse): void {
     this.session.set(session);
-  }
-
-  private readSession(): AuthResponse | null {
-    const value = localStorage.getItem(this.storageKey);
-    if (!value) {
-      return null;
-    }
-    try {
-      return JSON.parse(value) as AuthResponse;
-    } catch {
-      localStorage.removeItem(this.storageKey);
-      return null;
-    }
+    this.sessionChecked.set(true);
   }
 }

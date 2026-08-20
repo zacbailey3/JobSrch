@@ -119,14 +119,16 @@ the feature works without sending resume data to a third party.
 
 ## Frontend state
 
-`App` currently coordinates four small workspace views: dashboard, discovery,
-applications, and profile/resumes. `ApiService` is the typed backend boundary,
-and `AuthService` owns persisted browser authentication.
+`App` is the root router host. The authentication page and authenticated
+workspace shell are separate components, and dashboard, discovery,
+applications, profile/resumes, and settings are routed feature pages.
+`WorkspaceStore` preserves shared workspace state and cross-view operations,
+while `ApiService` remains the typed backend boundary.
 
-This is deliberate for the early MVP. Extract a view into a routed feature
-component when it gains complex filtering, dialogs, or independent tests. Keep
-HTTP calls in `ApiService` during that refactor so backend contracts remain
-centralized.
+Protected routes call `GET /api/auth/session` before activation. This restores
+browser-safe account metadata from the HttpOnly session cookie after a page
+refresh without treating local storage as proof of authentication. The
+workspace shell loads shared data once after the guard confirms the session.
 
 ## External job sources
 

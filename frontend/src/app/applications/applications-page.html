@@ -1,0 +1,115 @@
+<div class="content-grid applications-grid">
+  <section class="panel">
+    <div class="panel-heading">
+      <div>
+        <p class="eyebrow">Application pipeline</p>
+        <h2>Track every outcome</h2>
+      </div>
+      <span>{{ workspace.applications().length }} applications</span>
+    </div>
+
+    <div class="application-list">
+      @for (application of workspace.applications(); track application.id) {
+        <article class="application-card">
+          <div>
+            <h3>{{ application.title }}</h3>
+            <p>{{ application.company }}</p>
+            @if (application.appliedAt) {
+              <small>Applied {{ application.appliedAt | date:'mediumDate' }}</small>
+            }
+            @if (application.sourceUrl) {
+              <a class="application-link" [href]="application.sourceUrl"
+                target="_blank" rel="noreferrer">View company posting</a>
+            }
+            @if (application.notes) {
+              <p class="application-notes">{{ application.notes }}</p>
+            }
+          </div>
+          <div class="application-actions">
+            <label class="status-control">
+              Status
+              <select
+                [ngModel]="application.status"
+                (ngModelChange)="workspace.updateApplicationStatus(application, $event)"
+                [name]="'status-' + application.id">
+                @for (status of workspace.applicationStatuses; track status) {
+                  <option [value]="status">{{ workspace.statusLabel(status) }}</option>
+                }
+              </select>
+            </label>
+            <button class="secondary-button remove-button" type="button"
+              (click)="workspace.deleteApplication(application.id)">
+              Remove
+            </button>
+          </div>
+        </article>
+      } @empty {
+        <div class="empty-state">
+          <strong>No applications yet.</strong>
+          <p>Add one manually when you apply outside JobSrch.</p>
+        </div>
+      }
+    </div>
+  </section>
+
+  <aside class="panel add-panel">
+    @if (workspace.newApplication.jobPostingId) {
+      <p class="eyebrow">Saved opportunity</p>
+      <h2>Add this role to your pipeline</h2>
+      <p class="muted">
+        Confirm when you applied and choose its current stage before adding it.
+      </p>
+    } @else {
+      <p class="eyebrow">Manual entry</p>
+      <h2>Record an application</h2>
+      <p class="muted">
+        Add a role you applied to outside JobSrch and keep its outcome in your pipeline.
+      </p>
+    }
+    <form (ngSubmit)="workspace.addApplication(applicationForm)" #applicationForm="ngForm">
+      <label>
+        Position
+        <input name="applicationTitle" [(ngModel)]="workspace.newApplication.title" required />
+      </label>
+      <label>
+        Company
+        <input name="applicationCompany" [(ngModel)]="workspace.newApplication.company" required />
+      </label>
+      <label>
+        Date applied
+        <input type="date" name="appliedAt"
+          [(ngModel)]="workspace.newApplication.appliedAt" required />
+      </label>
+      <fieldset class="application-status-fieldset">
+        <legend>Have you heard from them?</legend>
+        <div class="application-status-options">
+          @for (status of workspace.manualApplicationStatuses; track status.value) {
+            <label class="application-status-option"
+              [class.selected]="workspace.newApplication.status === status.value">
+              <input type="radio" name="applicationStatus"
+                [value]="status.value" [(ngModel)]="workspace.newApplication.status" />
+              <span>
+                <strong>{{ status.label }}</strong>
+                <small>{{ status.description }}</small>
+              </span>
+            </label>
+          }
+        </div>
+      </fieldset>
+      <label>
+        Company or posting URL <span class="optional-label">Optional</span>
+        <input type="url" name="applicationUrl" [(ngModel)]="workspace.newApplication.sourceUrl"
+          placeholder="https://company.com/jobs/role" />
+      </label>
+      <label>
+        Notes <span class="optional-label">Optional</span>
+        <textarea name="applicationNotes" [(ngModel)]="workspace.newApplication.notes" rows="3"
+          placeholder="Recruiter name, next step, or follow-up date"></textarea>
+      </label>
+      <button class="primary-button" type="submit"
+        [disabled]="applicationForm.invalid || workspace.loading()">
+        {{ workspace.newApplication.jobPostingId ? 'Add to pipeline' : 'Add application' }}
+      </button>
+    </form>
+  </aside>
+</div>

@@ -11,15 +11,6 @@ describe('authInterceptor', () => {
   let auth: AuthService;
 
   beforeEach(() => {
-    localStorage.clear();
-    localStorage.setItem('jobsrch-session', JSON.stringify({
-      expiresIn: 3600,
-      userId: 'user-1',
-      email: 'stale@example.com',
-      firstName: 'Stale',
-      lastName: 'User'
-    }));
-
     TestBed.configureTestingModule({
       providers: [
         provideHttpClient(withInterceptors([authInterceptor])),
@@ -30,14 +21,20 @@ describe('authInterceptor', () => {
     http = TestBed.inject(HttpClient);
     httpTesting = TestBed.inject(HttpTestingController);
     auth = TestBed.inject(AuthService);
+    auth.session.set({
+      expiresIn: 3600,
+      userId: 'user-1',
+      email: 'stale@example.com',
+      firstName: 'Stale',
+      lastName: 'User'
+    });
   });
 
   afterEach(() => {
     httpTesting.verify();
-    localStorage.clear();
   });
 
-  it('clears a stored session when the backend rejects it', () => {
+  it('clears browser-visible session metadata when the backend rejects it', () => {
     http.get('/api/dashboard').subscribe({ error: () => undefined });
 
     const request = httpTesting.expectOne('/api/dashboard');
@@ -45,7 +42,6 @@ describe('authInterceptor', () => {
     request.flush({}, { status: 401, statusText: 'Unauthorized' });
 
     expect(auth.session()).toBeNull();
-    expect(localStorage.getItem('jobsrch-session')).toBeNull();
   });
 
   it('does not attach an Authorization header to authentication requests', () => {

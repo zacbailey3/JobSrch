@@ -1,0 +1,177 @@
+<div class="content-grid profile-grid">
+  <section class="panel profile-panel">
+    <div class="profile-heading">
+      <div>
+        <p class="eyebrow">Career profile</p>
+        <h2>{{ workspace.profileMode() === 'view' ? 'Your candidate snapshot' : 'Tell JobSrch what fits' }}</h2>
+        <p class="muted">Your saved profile supports job filtering and resume matching.</p>
+      </div>
+      @if (workspace.profileMode() === 'view') {
+        <button class="secondary-button" type="button"
+          (click)="workspace.startProfileEdit()">Edit profile</button>
+      }
+    </div>
+
+    @if (workspace.profileMode() === 'view') {
+      @if (workspace.hasProfileDetails()) {
+        <div class="profile-summary">
+          <div class="profile-identity">
+            <div class="profile-avatar">{{ workspace.profileInitials() }}</div>
+            <div>
+              <h3>{{ workspace.auth.session()?.firstName }} {{ workspace.auth.session()?.lastName }}</h3>
+              <p>{{ workspace.savedProfile().headline || 'Early-career candidate' }}</p>
+            </div>
+          </div>
+
+          <div class="profile-facts">
+            @if (workspace.savedProfile().location) {
+              <div><span>Location</span><strong>{{ workspace.savedProfile().location }}</strong></div>
+            }
+            @if (workspace.savedProfile().education) {
+              <div><span>Education</span><strong>{{ workspace.savedProfile().education }}</strong></div>
+            }
+            @if (workspace.savedProfile().graduationYear) {
+              <div><span>Graduation</span><strong>{{ workspace.savedProfile().graduationYear }}</strong></div>
+            }
+            <div>
+              <span>Experience</span>
+              <strong>{{ workspace.savedProfile().yearsExperience ?? 0 }} years</strong>
+            </div>
+          </div>
+
+          @if (workspace.splitProfileList(workspace.savedProfile().desiredRoles); as roles) {
+            @if (roles.length > 0) {
+              <section class="profile-section">
+                <span class="profile-label">Roles you are open to</span>
+                <div class="profile-chips role-chips">
+                  @for (role of roles; track role) {
+                    <span>{{ role }}</span>
+                  }
+                </div>
+              </section>
+            }
+          }
+
+          @if (workspace.splitProfileList(workspace.savedProfile().skills); as skills) {
+            @if (skills.length > 0) {
+              <section class="profile-section">
+                <span class="profile-label">Skills</span>
+                <div class="profile-chips">
+                  @for (skill of skills; track skill) {
+                    <span>{{ skill }}</span>
+                  }
+                </div>
+              </section>
+            }
+          }
+
+          <div class="profile-links">
+            @if (workspace.savedProfile().linkedinUrl) {
+              <a [href]="workspace.savedProfile().linkedinUrl" target="_blank" rel="noreferrer">LinkedIn profile</a>
+            }
+            @if (workspace.savedProfile().portfolioUrl) {
+              <a [href]="workspace.savedProfile().portfolioUrl" target="_blank" rel="noreferrer">Portfolio</a>
+            }
+            @if (workspace.savedProfile().phone) {
+              <span>{{ workspace.savedProfile().phone }}</span>
+            }
+          </div>
+        </div>
+      } @else {
+        <div class="empty-state profile-empty">
+          <strong>Build your candidate snapshot.</strong>
+          <p>Add the roles, skills, and experience that should guide your search.</p>
+          <button class="primary-button" type="button"
+            (click)="workspace.startProfileEdit()">Create profile</button>
+        </div>
+      }
+    } @else {
+      <form class="profile-form" (ngSubmit)="workspace.saveProfile(profileForm)" #profileForm="ngForm">
+        <label class="wide-field">
+          Professional headline
+          <input name="headline" [(ngModel)]="workspace.profile.headline" maxlength="240"
+            placeholder="New graduate Java developer" />
+        </label>
+        <label>
+          Location
+          <input name="profileLocation" [(ngModel)]="workspace.profile.location" />
+        </label>
+        <label>
+          Phone
+          <input name="phone" [(ngModel)]="workspace.profile.phone" />
+        </label>
+        <label>
+          Education
+          <input name="education" [(ngModel)]="workspace.profile.education" />
+        </label>
+        <label>
+          Graduation year
+          <input type="number" name="graduationYear" [(ngModel)]="workspace.profile.graduationYear"
+            min="1950" max="2200" />
+        </label>
+        <label>
+          Years of experience
+          <input type="number" name="yearsExperience" [(ngModel)]="workspace.profile.yearsExperience"
+            min="0" max="50" />
+        </label>
+        <label class="wide-field">
+          Desired roles
+          <input name="desiredRoles" [(ngModel)]="workspace.profile.desiredRoles"
+            placeholder="Backend developer, software engineer, QA engineer" />
+        </label>
+        <label class="wide-field">
+          Skills
+          <textarea name="skills" [(ngModel)]="workspace.profile.skills" rows="4"
+            placeholder="Java, Spring Boot, SQL, Angular"></textarea>
+        </label>
+        <label>
+          LinkedIn URL
+          <input type="url" name="linkedinUrl" [(ngModel)]="workspace.profile.linkedinUrl" />
+        </label>
+        <label>
+          Portfolio URL
+          <input type="url" name="portfolioUrl" [(ngModel)]="workspace.profile.portfolioUrl" />
+        </label>
+        <div class="profile-form-actions wide-field">
+          @if (workspace.hasProfileDetails()) {
+            <button class="secondary-button" type="button"
+              (click)="workspace.cancelProfileEdit()">Cancel</button>
+          }
+          <button class="primary-button" type="submit"
+            [disabled]="profileForm.invalid || workspace.loading()">
+            Save and view profile
+          </button>
+        </div>
+      </form>
+    }
+  </section>
+
+  <aside class="panel resume-panel">
+    <p class="eyebrow">Resume library</p>
+    <h2>Upload your resume</h2>
+    <p class="muted">PDF and DOCX files up to 10 MB. Use an uploaded resume to analyze saved roles.</p>
+    <label class="upload-control">
+      <span>{{ workspace.loading() ? 'Uploading...' : 'Choose resume' }}</span>
+      <input type="file" accept=".pdf,.docx" (change)="workspace.uploadResume($event)"
+        [disabled]="workspace.loading()" />
+    </label>
+
+    <div class="resume-list">
+      @for (resume of workspace.resumes(); track resume.id) {
+        <article class="resume-card">
+          <div class="file-mark">CV</div>
+          <div>
+            <strong>{{ resume.filename }}</strong>
+            <small>{{ workspace.formatBytes(resume.sizeBytes) }} - {{ resume.uploadedAt | date:'medium' }}</small>
+          </div>
+          <button type="button" (click)="workspace.deleteResume(resume.id)">Remove</button>
+        </article>
+      } @empty {
+        <div class="empty-state compact">
+          <strong>No resume uploaded.</strong>
+          <p>Add one to prepare for matching.</p>
+        </div>
+      }
+    </div>
+  </aside>
+</div>

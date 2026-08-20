@@ -1,0 +1,161 @@
+<section class="stat-grid">
+  <article class="stat-card accent">
+    <span>Saved roles</span>
+    <strong>{{ workspace.dashboard()?.savedJobs ?? 0 }}</strong>
+    <small>Ready to review</small>
+  </article>
+  <article class="stat-card">
+    <span>Total applications</span>
+    <strong>{{ workspace.dashboard()?.totalApplications ?? 0 }}</strong>
+    <small>Across every stage</small>
+  </article>
+  <article class="stat-card">
+    <span>Interviews</span>
+    <strong>{{ workspace.dashboard()?.applicationsByStatus?.['INTERVIEW'] ?? 0 }}</strong>
+    <small>Conversations in progress</small>
+  </article>
+  <article class="stat-card">
+    <span>Offers</span>
+    <strong>{{ workspace.dashboard()?.applicationsByStatus?.['OFFER'] ?? 0 }}</strong>
+    <small>The best kind of update</small>
+  </article>
+</section>
+
+<div class="content-grid">
+  <section class="panel">
+    <div class="panel-heading">
+      <div>
+        <p class="eyebrow">Saved opportunities</p>
+        <h2>Your shortlist</h2>
+      </div>
+      <span>{{ workspace.jobs().length }} roles</span>
+    </div>
+
+    <div class="job-list">
+      @for (job of workspace.jobs(); track job.id) {
+        <article class="job-card">
+          <div class="company-mark">{{ job.company.charAt(0).toUpperCase() }}</div>
+          <div class="job-copy">
+            <h3>{{ job.title }}</h3>
+            <p>{{ job.company }} @if (job.location) { - {{ job.location }} }</p>
+            <div class="job-tags">
+              @if (job.experienceMax !== null) {
+                <span>0-{{ job.experienceMax }} years</span>
+              }
+              <span>Saved manually</span>
+            </div>
+          </div>
+          <div class="job-actions">
+            @if (workspace.applicationForSavedJob(job); as application) {
+              <button class="pipeline-action" type="button" (click)="workspace.trackSavedJob(job)">
+                View in pipeline - {{ workspace.statusLabel(application.status) }}
+              </button>
+            } @else {
+              <button class="pipeline-action" type="button" (click)="workspace.trackSavedJob(job)">
+                Add to pipeline
+              </button>
+            }
+            @if (job.sourceUrl) {
+              <a [href]="job.sourceUrl" target="_blank" rel="noreferrer">View role</a>
+            }
+            <button class="analyze-button" type="button" (click)="workspace.analyzeJob(job)"
+              [disabled]="workspace.analyzingJobId() === job.id">
+              {{ workspace.analyzingJobId() === job.id ? 'Analyzing...' : 'Analyze resume' }}
+            </button>
+            <button class="remove-job-action" type="button" (click)="workspace.deleteJob(job.id)">
+              Remove
+            </button>
+          </div>
+          @if (workspace.analyses()[job.id]; as analysis) {
+            <div class="analysis-result">
+              <div class="score-ring">
+                <strong>{{ analysis.overallScore }}</strong>
+                <span>match</span>
+              </div>
+              <div class="analysis-copy">
+                <div>
+                  <strong>Matched</strong>
+                  <p>{{ analysis.matchedSkills.join(', ') || 'No tracked skills found yet' }}</p>
+                </div>
+                <div>
+                  <strong>Missing or unclear</strong>
+                  <p>{{ analysis.missingSkills.join(', ') || 'No missing tracked skills' }}</p>
+                </div>
+                <ul>
+                  @for (suggestion of analysis.suggestions; track suggestion) {
+                    <li>{{ suggestion }}</li>
+                  }
+                </ul>
+              </div>
+            </div>
+          }
+        </article>
+      } @empty {
+        <div class="empty-state">
+          <strong>Your shortlist is ready.</strong>
+          <p>Add the first role you want to keep an eye on.</p>
+        </div>
+      }
+    </div>
+  </section>
+
+  <aside class="panel add-panel">
+    <p class="eyebrow">Quick add</p>
+    <h2>Save a role</h2>
+    <p class="muted">Found something elsewhere? Keep it with the rest of your search.</p>
+
+    <form (ngSubmit)="workspace.addJob(jobForm)" #jobForm="ngForm">
+      <label>
+        Job title
+        <input name="title" [(ngModel)]="workspace.newJob.title" required />
+      </label>
+      <label>
+        Company
+        <input name="company" [(ngModel)]="workspace.newJob.company" required />
+      </label>
+      <label>
+        Location
+        <input name="location" [(ngModel)]="workspace.newJob.location" placeholder="Remote or city" />
+      </label>
+      <div class="two-column">
+        <label>
+          Min. years
+          <input type="number" name="experienceMin" [(ngModel)]="workspace.newJob.experienceMin" min="0" />
+        </label>
+        <label>
+          Max. years
+          <input type="number" name="experienceMax" [(ngModel)]="workspace.newJob.experienceMax" min="0" />
+        </label>
+      </div>
+      <label>
+        Posting URL
+        <input type="url" name="sourceUrl" [(ngModel)]="workspace.newJob.sourceUrl" />
+      </label>
+      <label>
+        Job description
+        <textarea name="jobDescription" [(ngModel)]="workspace.newJob.description" rows="5"
+          placeholder="Paste the requirements used for resume matching"></textarea>
+      </label>
+      <button class="primary-button" type="submit"
+        [disabled]="jobForm.invalid || workspace.loading()">
+        Save opportunity
+      </button>
+    </form>
+  </aside>
+</div>
+
+<section class="panel danger-zone">
+  <p class="eyebrow">Account controls</p>
+  <h2>Delete account</h2>
+  <p class="muted">Permanently removes your profile, saved jobs, applications, alerts,
+    reset tokens, resume records, and stored resume files.</p>
+  <label>
+    Confirm your password
+    <input type="password" [(ngModel)]="workspace.accountDeletionPassword"
+      autocomplete="current-password" />
+  </label>
+  <button class="danger-button" type="button" (click)="workspace.deleteAccount()"
+    [disabled]="workspace.loading() || !workspace.accountDeletionPassword">
+    Permanently delete account
+  </button>
+</section>

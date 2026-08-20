@@ -1,4 +1,11 @@
-:host {
+app-root,
+app-auth-page,
+app-workspace-shell,
+app-dashboard-page,
+app-discovery-page,
+app-applications-page,
+app-profile-page,
+app-settings-page {
   display: block;
   min-height: 100vh;
   color: #17231f;
@@ -257,7 +264,8 @@ button,
   padding: 0.3rem;
 }
 
-.workspace-nav button {
+.workspace-nav button,
+.workspace-nav a {
   background: transparent;
   border: 0;
   border-radius: 9px;
@@ -265,9 +273,11 @@ button,
   font-size: 0.82rem;
   font-weight: 800;
   padding: 0.7rem 0.95rem;
+  text-decoration: none;
 }
 
-.workspace-nav button.active {
+.workspace-nav button.active,
+.workspace-nav a.active {
   background: #1f6f4a;
   color: white;
 }

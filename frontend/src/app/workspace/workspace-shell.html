@@ -1,0 +1,45 @@
+<div class="app-shell">
+  <header class="topbar">
+    <a class="brand" routerLink="/dashboard" (click)="workspace.clearMessages()">
+      <span class="brand-mark">J</span>
+      <span>JobSrch</span>
+    </a>
+    <div class="user-menu">
+      <span>{{ workspace.auth.session()?.firstName }} {{ workspace.auth.session()?.lastName }}</span>
+      <button class="ghost-button" type="button" (click)="workspace.logout()">Sign out</button>
+    </div>
+  </header>
+
+  <main class="dashboard">
+    <section class="welcome-row">
+      <div>
+        <p class="eyebrow">Your search workspace</p>
+        <h1>Good to see you, {{ workspace.auth.session()?.firstName }}.</h1>
+        <p>Keep the next useful step visible and the noise out of the way.</p>
+      </div>
+      <span class="focus-badge">Entry-level focus</span>
+    </section>
+
+    <nav class="workspace-nav" aria-label="Workspace sections">
+      <a routerLink="/dashboard" routerLinkActive="active"
+        (click)="workspace.clearMessages()">Dashboard</a>
+      <a routerLink="/discover" routerLinkActive="active"
+        (click)="workspace.clearMessages()">Discover jobs</a>
+      <a routerLink="/applications" routerLinkActive="active"
+        (click)="workspace.clearMessages()">Applications</a>
+      <a routerLink="/profile" routerLinkActive="active"
+        (click)="workspace.clearMessages()">Profile & resume</a>
+      <a routerLink="/settings" routerLinkActive="active"
+        (click)="workspace.clearMessages()">Settings</a>
+    </nav>
+
+    @if (workspace.error()) {
+      <p class="error-message page-message">{{ workspace.error() }}</p>
+    }
+    @if (workspace.success()) {
+      <p class="success-message page-message">{{ workspace.success() }}</p>
+    }
+
+    <router-outlet />
+  </main>
+</div>
