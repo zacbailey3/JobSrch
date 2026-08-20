@@ -37,6 +37,9 @@ public class UserAccount {
     @Column(name = "security_version", nullable = false)
     private long securityVersion;
 
+    @Column(name = "email_verified_at")
+    private Instant emailVerifiedAt;
+
     protected UserAccount() {
     }
 
@@ -58,6 +61,10 @@ public class UserAccount {
         return email;
     }
 
+    public Instant getEmailVerifiedAt() {
+        return emailVerifiedAt;
+    }
+
     public String getPasswordHash() {
         return passwordHash;
     }
@@ -72,6 +79,11 @@ public class UserAccount {
 
     public void updatePasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
+    }
+
+    public void updateVerifiedEmail(String email, Instant verifiedAt) {
+        this.email = email;
+        this.emailVerifiedAt = verifiedAt;
     }
 
     public long getSecurityVersion() {

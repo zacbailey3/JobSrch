@@ -38,11 +38,17 @@ controllers.
 
 ## Authentication and ownership
 
-`AuthService` signs an HMAC JWT whose subject is the normalized email address.
+`AuthService` signs an HMAC JWT whose subject is the account's immutable UUID.
 The controller delivers it only through an HttpOnly session cookie, so Angular
 cannot read or persist the credential. Spring Security resolves and validates
 that cookie before protected controllers run. CSRF tokens protect
 state-changing cookie-authenticated requests.
+
+For one JWT lifetime after the UUID-subject rollout, `CurrentUserService` and
+`SessionVersionFilter` also accept the previous email subject only when its
+`userId` claim resolves to that same email. New sessions contain `authTime`.
+Password, email, and deletion operations require that timestamp to be no more
+than ten minutes old; password reauthentication issues a fresh cookie.
 
 Authentication answers "who made this request." It does not answer "does this
 record belong to that user." `CurrentUserService` resolves the database account,
@@ -67,9 +73,12 @@ Flyway owns the database schema:
   language, sponsorship language, and saved-search filters
 - `V6__password_reset_tokens.sql`: hashed, expiring one-time reset tokens
 - `V7__job_import_audit.sql`: import batches and sanitized source-attempt history
+- `V8__session_security_version.sql`: session invalidation counter
+- `V9__account_security_and_email_changes.sql`: email verification state and
+  hashed email-change tokens
 
-Never edit an applied migration. Add `V3__description.sql`, then `V4`, and so
-on. Hibernate uses `ddl-auto: validate`, which checks entity mappings against
+Never edit an applied migration. The next schema change should add `V10`.
+Hibernate uses `ddl-auto: validate`, which checks entity mappings against
 the migrated schema but never silently changes production tables.
 
 UUID fields use `BINARY(16)` to keep MySQL indexes compact. Hibernate 7 entities
@@ -129,6 +138,9 @@ Protected routes call `GET /api/auth/session` before activation. This restores
 browser-safe account metadata from the HttpOnly session cookie after a page
 refresh without treating local storage as proof of authentication. The
 workspace shell loads shared data once after the guard confirms the session.
+Settings owns account preferences separately from `WorkspaceStore`: it loads
+verification/recent-authentication status, performs password reauthentication,
+and calls the CSRF-protected password, email-change, and deletion endpoints.
 
 ## External job sources
 

@@ -38,12 +38,23 @@ export class AuthPage implements OnInit {
 
   ngOnInit(): void {
     const resetToken = this.route.snapshot.queryParamMap.get('resetToken');
+    const notice = this.route.snapshot.queryParamMap.get('notice');
     if (resetToken) {
       this.passwordReset.token = resetToken;
       this.authMode.set('reset');
+    }
+    const notices: Record<string, string> = {
+      'password-changed': 'Password changed. Sign in with your new password.',
+      'email-changed': 'Email changed and verified. Sign in with your new email.',
+      'account-deleted': 'Your account and private JobSrch data were deleted.'
+    };
+    if (notice && notices[notice]) {
+      this.success.set(notices[notice]);
+    }
+    if (resetToken || notice) {
       void this.router.navigate([], {
         relativeTo: this.route,
-        queryParams: { resetToken: null },
+        queryParams: { resetToken: null, notice: null },
         queryParamsHandling: 'merge',
         replaceUrl: true
       });

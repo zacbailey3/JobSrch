@@ -3,9 +3,8 @@ package com.jobsrch.auth;
 import java.time.Duration;
 import java.time.Instant;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.ResponseCookie;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -17,7 +16,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
-import com.jobsrch.config.AuthCookieProperties;
 import com.jobsrch.user.CurrentUserService;
 
 @RestController
@@ -26,24 +24,30 @@ public class AuthController {
 
     private final AuthService authService;
     private final PasswordResetService passwordResetService;
-    private final AuthCookieProperties cookieProperties;
+    private final SessionCookieService sessionCookies;
     private final CurrentUserService currentUsers;
+    private final RecentAuthenticationService recentAuthentication;
 
     public AuthController(
             AuthService authService,
             PasswordResetService passwordResetService,
-            AuthCookieProperties cookieProperties,
-            CurrentUserService currentUsers) {
+            SessionCookieService sessionCookies,
+            CurrentUserService currentUsers,
+            RecentAuthenticationService recentAuthentication) {
         this.authService = authService;
         this.passwordResetService = passwordResetService;
-        this.cookieProperties = cookieProperties;
+        this.sessionCookies = sessionCookies;
         this.currentUsers = currentUsers;
+        this.recentAuthentication = recentAuthentication;
     }
 
     @GetMapping("/session")
     SessionResponse session(@AuthenticationPrincipal Jwt jwt) {
         long expiresIn = Math.max(0, Duration.between(Instant.now(), jwt.getExpiresAt()).toSeconds());
-        return SessionResponse.from(currentUsers.requireUser(jwt), expiresIn);
+        return SessionResponse.from(
+                currentUsers.requireUser(jwt),
+                expiresIn,
+                recentAuthentication.authenticatedAt(jwt));
     }
 
     @PostMapping("/register")
@@ -60,9 +64,8 @@ public class AuthController {
     @PostMapping("/logout")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     ResponseEntity<Void> logout() {
-        ResponseCookie expired = cookie("", 0);
         return ResponseEntity.noContent()
-                .header(HttpHeaders.SET_COOKIE, expired.toString())
+                .header(HttpHeaders.SET_COOKIE, sessionCookies.expired().toString())
                 .build();
     }
 
@@ -79,19 +82,8 @@ public class AuthController {
     }
 
     private ResponseEntity<SessionResponse> authenticated(AuthResponse auth, HttpStatus status) {
-        ResponseCookie sessionCookie = cookie(auth.accessToken(), auth.expiresIn());
         return ResponseEntity.status(status)
-                .header(HttpHeaders.SET_COOKIE, sessionCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, sessionCookies.authenticated(auth).toString())
                 .body(SessionResponse.from(auth));
-    }
-
-    private ResponseCookie cookie(String value, long maxAge) {
-        return ResponseCookie.from(cookieProperties.name(), value)
-                .httpOnly(true)
-                .secure(cookieProperties.secure())
-                .sameSite(cookieProperties.sameSite())
-                .path("/")
-                .maxAge(maxAge)
-                .build();
     }
 }

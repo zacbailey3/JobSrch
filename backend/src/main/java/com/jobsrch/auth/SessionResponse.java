@@ -1,5 +1,6 @@
 package com.jobsrch.auth;
 
+import java.time.Instant;
 import java.util.UUID;
 
 import com.jobsrch.user.UserAccount;
@@ -13,7 +14,8 @@ public record SessionResponse(
         UUID userId,
         String email,
         String firstName,
-        String lastName) {
+        String lastName,
+        Instant authenticatedAt) {
 
     static SessionResponse from(AuthResponse response) {
         return new SessionResponse(
@@ -21,15 +23,17 @@ public record SessionResponse(
                 response.userId(),
                 response.email(),
                 response.firstName(),
-                response.lastName());
+                response.lastName(),
+                response.authenticatedAt());
     }
 
-    static SessionResponse from(UserAccount user, long expiresIn) {
+    static SessionResponse from(UserAccount user, long expiresIn, Instant authenticatedAt) {
         return new SessionResponse(
                 expiresIn,
                 user.getId(),
                 user.getEmail(),
                 user.getFirstName(),
-                user.getLastName());
+                user.getLastName(),
+                authenticatedAt);
     }
 }

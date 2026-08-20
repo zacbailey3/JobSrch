@@ -26,7 +26,8 @@ describe('authInterceptor', () => {
       userId: 'user-1',
       email: 'stale@example.com',
       firstName: 'Stale',
-      lastName: 'User'
+      lastName: 'User',
+      authenticatedAt: '2026-08-20T20:00:00Z'
     });
   });
 
@@ -49,7 +50,8 @@ describe('authInterceptor', () => {
       email: 'new@example.com',
       password: 'password123',
       firstName: 'New',
-      lastName: 'User'
+      lastName: 'User',
+      authenticatedAt: '2026-08-20T20:00:00Z'
     }).subscribe();
 
     const request = httpTesting.expectOne('/api/auth/register');
@@ -59,7 +61,8 @@ describe('authInterceptor', () => {
       userId: 'user-2',
       email: 'new@example.com',
       firstName: 'New',
-      lastName: 'User'
+      lastName: 'User',
+      authenticatedAt: '2026-08-20T20:00:00Z'
     });
   });
 

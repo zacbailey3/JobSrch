@@ -46,7 +46,7 @@ public class AuthService {
                 passwordEncoder.encode(request.password()),
                 request.firstName().trim(),
                 request.lastName().trim()));
-        return createResponse(user);
+        return createResponse(user, Instant.now());
     }
 
     @Transactional(readOnly = true)
@@ -56,19 +56,19 @@ public class AuthService {
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             throw invalidCredentials();
         }
-        return createResponse(user);
+        return createResponse(user, Instant.now());
     }
 
-    private AuthResponse createResponse(UserAccount user) {
+    AuthResponse createResponse(UserAccount user, Instant authenticatedAt) {
         Instant now = Instant.now();
         Instant expiresAt = now.plus(properties.ttl());
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .issuer(properties.issuer())
                 .issuedAt(now)
                 .expiresAt(expiresAt)
-                .subject(user.getEmail())
-                .claim("userId", user.getId().toString())
+                .subject(user.getId().toString())
                 .claim("securityVersion", user.getSecurityVersion())
+                .claim("authTime", authenticatedAt.getEpochSecond())
                 .build();
         String token = jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
         return new AuthResponse(
@@ -77,7 +77,8 @@ public class AuthService {
                 user.getId(),
                 user.getEmail(),
                 user.getFirstName(),
-                user.getLastName());
+                user.getLastName(),
+                authenticatedAt);
     }
 
     private ResponseStatusException invalidCredentials() {

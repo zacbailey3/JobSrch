@@ -1,5 +1,6 @@
 package com.jobsrch.auth;
 
+import java.time.Instant;
 import java.util.UUID;
 
 public record AuthResponse(
@@ -8,5 +9,6 @@ public record AuthResponse(
         UUID userId,
         String email,
         String firstName,
-        String lastName) {
+        String lastName,
+        Instant authenticatedAt) {
 }

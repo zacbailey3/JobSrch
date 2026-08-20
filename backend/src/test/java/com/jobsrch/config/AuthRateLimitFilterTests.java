@@ -35,4 +35,24 @@ class AuthRateLimitFilterTests {
         assertThat(last.getHeader("Retry-After")).isEqualTo("60");
         assertThat(filter.bucketCount()).isEqualTo(1);
     }
+
+    @Test
+    void strictlyLimitsEmailChangeRequests() throws Exception {
+        AuthRateLimitFilter filter = new AuthRateLimitFilter(
+                Clock.fixed(Instant.parse("2026-08-20T12:00:00Z"), ZoneOffset.UTC));
+        AtomicInteger accepted = new AtomicInteger();
+        MockHttpServletResponse last = null;
+
+        for (int attempt = 1; attempt <= 6; attempt++) {
+            MockHttpServletRequest request = new MockHttpServletRequest(
+                    "POST", "/api/account/email-change/request");
+            request.setServletPath("/api/account/email-change/request");
+            request.setRemoteAddr("203.0.113.20");
+            last = new MockHttpServletResponse();
+            filter.doFilter(request, last, (ignoredRequest, ignoredResponse) -> accepted.incrementAndGet());
+        }
+
+        assertThat(accepted).hasValue(5);
+        assertThat(last.getStatus()).isEqualTo(429);
+    }
 }

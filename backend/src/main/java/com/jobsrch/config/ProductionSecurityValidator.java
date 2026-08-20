@@ -22,6 +22,7 @@ public class ProductionSecurityValidator implements InitializingBean {
     private final JwtProperties jwt;
     private final AuthCookieProperties cookie;
     private final PasswordResetProperties passwordReset;
+    private final AccountSecurityProperties accountSecurity;
     private final EmailProperties email;
     private final CorsProperties cors;
     private final MalwareScanProperties malwareScan;
@@ -31,6 +32,7 @@ public class ProductionSecurityValidator implements InitializingBean {
             JwtProperties jwt,
             AuthCookieProperties cookie,
             PasswordResetProperties passwordReset,
+            AccountSecurityProperties accountSecurity,
             EmailProperties email,
             CorsProperties cors,
             MalwareScanProperties malwareScan,
@@ -38,6 +40,7 @@ public class ProductionSecurityValidator implements InitializingBean {
         this.jwt = jwt;
         this.cookie = cookie;
         this.passwordReset = passwordReset;
+        this.accountSecurity = accountSecurity;
         this.email = email;
         this.cors = cors;
         this.malwareScan = malwareScan;
@@ -51,6 +54,8 @@ public class ProductionSecurityValidator implements InitializingBean {
         require(cookie.secure(), "Production requires secure authentication cookies");
         require(!passwordReset.exposeDevelopmentToken(),
                 "Production must not expose password reset tokens");
+        require(!accountSecurity.exposeDevelopmentEmailChangeToken(),
+                "Production must not expose email change tokens");
         require(hasText(environment.getProperty("spring.datasource.password"))
                         && !"jobsrch".equals(environment.getProperty("spring.datasource.password")),
                 "Production requires a non-default DB_PASSWORD");

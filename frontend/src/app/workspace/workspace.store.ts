@@ -124,8 +124,6 @@ export class WorkspaceStore {
     }
   ];
 
-  accountDeletionPassword = '';
-
   newJob: JobRequest = this.emptyJob();
   newApplication: ApplicationRequest = this.emptyApplication();
   profile: CareerProfile = { ...EMPTY_PROFILE };
@@ -170,23 +168,6 @@ export class WorkspaceStore {
     }
     this.initialized = true;
     this.loadWorkspace();
-  }
-
-  deleteAccount(): void {
-    if (!this.accountDeletionPassword
-        || !window.confirm('Permanently delete your account and all JobSrch data? This cannot be undone.')) {
-      return;
-    }
-    this.beginRequest();
-    this.api.deleteAccount(this.accountDeletionPassword).subscribe({
-      next: () => {
-        this.loading.set(false);
-        this.accountDeletionPassword = '';
-        this.auth.logout();
-        this.success.set('Your account and stored data were deleted.');
-      },
-      error: error => this.handleError(error)
-    });
   }
 
   navigateTo(view: WorkspaceView): void {

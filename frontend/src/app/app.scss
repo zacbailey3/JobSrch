@@ -861,6 +861,82 @@ button,
   opacity: 0.55;
 }
 
+.settings-heading,
+.settings-card-heading {
+  align-items: flex-start;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.settings-heading {
+  margin-bottom: 1.4rem;
+}
+
+.settings-heading h2,
+.settings-card h3 {
+  margin: 0.2rem 0 0.6rem;
+}
+
+.settings-message {
+  margin-bottom: 1rem;
+}
+
+.settings-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.settings-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.settings-card form {
+  margin-top: 0.25rem;
+}
+
+.account-email-card,
+.settings-danger-zone {
+  grid-column: 1 / -1;
+}
+
+.security-status,
+.verification-badge {
+  background: #fbf5e8;
+  border: 1px solid #eadcb7;
+  border-radius: 999px;
+  color: #7a6127;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.45rem 0.7rem;
+  white-space: nowrap;
+}
+
+.security-status.verified,
+.verification-badge.verified {
+  background: #e3efe7;
+  border-color: #c9dfd0;
+  color: #285d43;
+}
+
+.settings-divider {
+  border-top: 1px solid #e1e6e1;
+  margin-top: 0.5rem;
+}
+
+.settings-text-button {
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+
+.settings-danger-zone {
+  margin-top: 0;
+}
+
 .resume-card {
   align-items: center;
   background: #fafbf8;
@@ -1172,7 +1248,8 @@ button,
 @media (max-width: 900px) {
   .auth-layout,
   .content-grid,
-  .profile-grid {
+  .profile-grid,
+  .settings-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1276,7 +1353,9 @@ button,
   }
 
   .profile-heading,
-  .result-summary {
+  .result-summary,
+  .settings-heading,
+  .settings-card-heading {
     align-items: stretch;
     flex-direction: column;
   }

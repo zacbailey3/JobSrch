@@ -23,6 +23,10 @@ jobsrch:
   password-reset:
     ttl: PT15M
     expose-development-token: true
+  account-security:
+    recent-authentication-window: PT10M
+    email-change-ttl: PT15M
+    expose-development-email-change-token: true
   email:
     resend-api-key:
     from:

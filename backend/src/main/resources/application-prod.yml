@@ -20,6 +20,8 @@ jobsrch:
     same-site: Strict
   password-reset:
     expose-development-token: false
+  account-security:
+    expose-development-email-change-token: false
   email:
     resend-api-key: ${RESEND_API_KEY}
     from: ${PASSWORD_RESET_FROM}

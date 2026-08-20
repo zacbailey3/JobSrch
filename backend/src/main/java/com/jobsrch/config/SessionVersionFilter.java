@@ -49,17 +49,31 @@ public class SessionVersionFilter extends OncePerRequestFilter {
 
     private boolean isCurrent(JwtAuthenticationToken authentication) {
         try {
-            String userId = authentication.getToken().getClaimAsString("userId");
             Object claim = authentication.getToken().getClaim("securityVersion");
-            if (userId == null || !(claim instanceof Number version)) {
+            if (!(claim instanceof Number version)) {
                 return false;
             }
-            UserAccount user = users.findById(UUID.fromString(userId)).orElse(null);
+            UserAccount user = resolveUser(authentication);
             return user != null
-                    && user.getEmail().equalsIgnoreCase(authentication.getToken().getSubject())
                     && user.getSecurityVersion() == version.longValue();
         } catch (IllegalArgumentException exception) {
             return false;
+        }
+    }
+
+    private UserAccount resolveUser(JwtAuthenticationToken authentication) {
+        String subject = authentication.getToken().getSubject();
+        try {
+            return users.findById(UUID.fromString(subject)).orElse(null);
+        } catch (IllegalArgumentException ignored) {
+            String userId = authentication.getToken().getClaimAsString("userId");
+            if (userId == null) {
+                return null;
+            }
+            UserAccount legacyUser = users.findById(UUID.fromString(userId)).orElse(null);
+            return legacyUser != null && legacyUser.getEmail().equalsIgnoreCase(subject)
+                    ? legacyUser
+                    : null;
         }
     }
 }

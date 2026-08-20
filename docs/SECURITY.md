@@ -31,17 +31,42 @@ JobSrch. `SecurityHttpTests` verifies that an authenticated mutation without a
 valid CSRF token receives `403 Forbidden` and that Angular's matching plain
 cookie/header pair authorizes a mutation.
 
-JWT signature, expiration, and issuer are validated. Every token also contains
-the user's `securityVersion`. A password reset increments the persisted
-version, so all previously issued session cookies immediately receive
-`401 Unauthorized`.
+JWT signature, expiration, and issuer are validated. New JWT subjects are the
+immutable account UUID and include `authTime`. For one eight-hour token lifetime,
+the resolver accepts older email subjects only when the signed `userId` claim
+still resolves to that same account. Every token also contains the user's
+`securityVersion`. A password reset, password change, or completed email change
+increments the persisted version, so all previously issued session cookies
+immediately receive `401 Unauthorized`.
+
+## Sensitive account changes
+
+Settings displays email verification state but does not treat it as
+authorization. Password, email, and deletion changes require `authTime` to be
+within ten minutes. `POST /api/account/reauth/password` verifies BCrypt
+credentials and replaces the session cookie with a freshly authenticated JWT.
+
+Email changes never activate based only on a submitted address. The backend
+stores a SHA-256 hash of a random token, sends the raw token only to the new
+address, expires it after 15 minutes, binds it to the requesting account, and
+rejects duplicate, expired, reused, or cross-account tokens. Completion marks
+the new address verified, invalidates every session and password-reset token,
+and sends a notice to the old address. The email link carries its token in a URL
+fragment so it is not sent in HTTP requests or referrer headers; Angular removes
+the fragment after reading it. Existing accounts remain honestly marked as not
+independently verified until an address completes this flow.
+
+Deletion additionally requires typing `DELETE` exactly. The service removes
+the complete current account graph and generated private resume files. All
+account mutations retain cookie CSRF protection and dedicated rate limits.
 
 ## Password reset email
 
 Development and automated tests may expose the one-time reset token directly by
 setting `PASSWORD_RESET_EXPOSE_TOKEN=true`. This must be `false` publicly.
 
-Production sends a short-lived link through Resend. Configure:
+Production sends short-lived password-reset and email-change messages through
+Resend. Configure:
 
 - `RESEND_API_KEY`
 - `PASSWORD_RESET_FROM`
@@ -54,8 +79,9 @@ reset.
 
 ## Abuse controls
 
-Registration, login, password-reset operations, resume uploads, resume
-analysis, and discovery requests use one-minute limits. Authenticated expensive
+Registration, login, password-reset operations, account reauthentication,
+password/email changes, deletion, resume uploads, resume analysis, and
+discovery requests use one-minute limits. Authenticated expensive
 operations are keyed by user; unauthenticated operations are keyed by client
 address. Direct company-board requests have a stricter limit because they can
 make live provider calls.
@@ -100,6 +126,7 @@ Production Compose activates the `prod` Spring profile. That profile and
 - the JWT or database password uses a development value;
 - the session cookie is not HTTPS-only;
 - reset tokens are exposed in API responses;
+- email-change tokens are exposed in API responses;
 - Resend settings are absent;
 - the frontend or CORS origin is not an explicit public HTTPS URL; or
 - malware scanning is disabled.

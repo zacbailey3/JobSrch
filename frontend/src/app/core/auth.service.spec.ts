@@ -24,7 +24,8 @@ describe('AuthService session restoration', () => {
       userId: 'user-1',
       email: 'student@example.com',
       firstName: 'Student',
-      lastName: 'Developer'
+      lastName: 'Developer',
+      authenticatedAt: '2026-08-20T20:00:00Z'
     };
     let restored: AuthResponse | null | undefined;
 

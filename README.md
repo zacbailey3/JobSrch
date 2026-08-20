@@ -14,6 +14,8 @@ experience.
 ## Current features
 
 - Email/password registration and login
+- Routed Settings with recent password confirmation, password changes,
+  verified email changes, reset-email requests, and permanent deletion
 - User-owned saved jobs with entry-level experience ranges
 - Application pipeline with status updates and saved-role handoff
 - Readable candidate profile with a separate editing mode
@@ -48,7 +50,9 @@ backend/
                   Versioned database schema changes
 frontend/
   src/app/
-    app.ts         MVP view state and user interactions
+    app.ts         Root router host
+    workspace/     Shared authenticated workspace state and shell
+    settings/      Secure account-preference interactions
     core/          Authentication and typed API clients
 docs/
   ARCHITECTURE.md  Request flow, ownership rules, and extension points
@@ -102,6 +106,7 @@ The defaults are suitable only for local development. Deployments should set:
 | `DB_PASSWORD` | MySQL application password |
 | `JWT_SECRET` | Secret of at least 32 bytes used to sign tokens |
 | `PASSWORD_RESET_EXPOSE_TOKEN` | Shows reset codes locally; the production profile always forces this to `false` |
+| `EMAIL_CHANGE_EXPOSE_TOKEN` | Shows email-change codes locally; the production profile always forces this to `false` |
 | `RESEND_API_KEY` | Resend API key used for production password-reset email |
 | `PASSWORD_RESET_FROM` | Sender on a domain verified with Resend |
 | `FRONTEND_BASE_URL` | Public frontend URL used to build password-reset links |
@@ -123,10 +128,11 @@ The defaults are suitable only for local development. Deployments should set:
 Greenhouse and Lever work without credentials. USAJOBS and Adzuna are skipped
 until their environment variables are configured.
 
-Production password reset uses Resend. Its free plan is sufficient for a small
+Production password reset and email verification use Resend. Its free plan is sufficient for a small
 learning deployment, but sending to arbitrary recipients requires a domain you
 control and DNS verification. Local development may keep
-`PASSWORD_RESET_EXPOSE_TOKEN=true`; the production profile always disables it.
+`PASSWORD_RESET_EXPOSE_TOKEN=true` and `EMAIL_CHANGE_EXPOSE_TOKEN=true`; the
+production profile always disables both.
 
 ## Portfolio production
 

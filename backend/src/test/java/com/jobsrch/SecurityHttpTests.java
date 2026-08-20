@@ -106,6 +106,13 @@ class SecurityHttpTests {
         Cookie session = registration.getCookie("JOBSRCH_SESSION");
         Cookie csrfCookie = registration.getCookie("XSRF-TOKEN");
         assertThat(session).isNotNull();
+        if (csrfCookie == null) {
+            csrfCookie = mockMvc.perform(get("/api/auth/session").cookie(session))
+                    .andExpect(status().isOk())
+                    .andReturn()
+                    .getResponse()
+                    .getCookie("XSRF-TOKEN");
+        }
         assertThat(csrfCookie).isNotNull();
 
         mockMvc.perform(post("/api/jobs")

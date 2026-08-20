@@ -19,7 +19,8 @@ class ProductionSecurityValidatorTests {
                 new PasswordResetProperties(Duration.ofMinutes(15), false),
                 List.of("https://jobs.example.com"),
                 true,
-                "strong-database-password");
+                "strong-database-password",
+                false);
 
         assertThatCode(validator::afterPropertiesSet).doesNotThrowAnyException();
     }
@@ -31,7 +32,8 @@ class ProductionSecurityValidatorTests {
                 new PasswordResetProperties(Duration.ofMinutes(15), false),
                 List.of("https://jobs.example.com"),
                 true,
-                "jobsrch");
+                "jobsrch",
+                false);
 
         assertThatThrownBy(validator::afterPropertiesSet)
                 .isInstanceOf(IllegalStateException.class)
@@ -45,11 +47,27 @@ class ProductionSecurityValidatorTests {
                 new PasswordResetProperties(Duration.ofMinutes(15), false),
                 List.of("http://localhost:4200"),
                 false,
-                "strong-database-password");
+                "strong-database-password",
+                false);
 
         assertThatThrownBy(validator::afterPropertiesSet)
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("CORS_ALLOWED_ORIGINS");
+    }
+
+    @Test
+    void rejectsExposedEmailChangeTokens() {
+        ProductionSecurityValidator validator = validator(
+                new AuthCookieProperties("JOBSRCH_SESSION", true, "Strict"),
+                new PasswordResetProperties(Duration.ofMinutes(15), false),
+                List.of("https://jobs.example.com"),
+                true,
+                "strong-database-password",
+                true);
+
+        assertThatThrownBy(validator::afterPropertiesSet)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("email change tokens");
     }
 
     private ProductionSecurityValidator validator(
@@ -57,7 +75,8 @@ class ProductionSecurityValidatorTests {
             PasswordResetProperties reset,
             List<String> origins,
             boolean scanEnabled,
-            String databasePassword) {
+            String databasePassword,
+            boolean exposeEmailChangeToken) {
         MockEnvironment environment = new MockEnvironment()
                 .withProperty("spring.datasource.password", databasePassword);
         return new ProductionSecurityValidator(
@@ -67,6 +86,10 @@ class ProductionSecurityValidatorTests {
                         Duration.ofHours(8)),
                 cookie,
                 reset,
+                new AccountSecurityProperties(
+                        Duration.ofMinutes(10),
+                        Duration.ofMinutes(15),
+                        exposeEmailChangeToken),
                 new EmailProperties(
                         "re_test_key",
                         "JobSrch <accounts@example.com>",

@@ -190,6 +190,29 @@ export interface SearchAlert {
   seen: boolean;
 }
 
+export interface AccountPreferences {
+  email: string;
+  emailVerified: boolean;
+  emailVerifiedAt: string | null;
+  authenticatedAt: string | null;
+  recentAuthenticationExpiresAt: string | null;
+}
+
+export interface AccountSession {
+  expiresIn: number;
+  userId: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  authenticatedAt: string | null;
+}
+
+export interface EmailChangeResponse {
+  message: string;
+  developmentToken: string | null;
+  expiresAt: string | null;
+}
+
 /**
  * Typed boundary for every backend call used by the Angular application.
  *
@@ -325,7 +348,27 @@ export class ApiService {
     return this.http.post<void>('/api/saved-searches/alerts/seen', {});
   }
 
-  deleteAccount(password: string): Observable<void> {
-    return this.http.delete<void>('/api/account', { body: { password } });
+  getAccountPreferences(): Observable<AccountPreferences> {
+    return this.http.get<AccountPreferences>('/api/account');
+  }
+
+  reauthenticatePassword(password: string): Observable<AccountSession> {
+    return this.http.post<AccountSession>('/api/account/reauth/password', { password });
+  }
+
+  changePassword(password: string): Observable<void> {
+    return this.http.put<void>('/api/account/password', { password });
+  }
+
+  requestEmailChange(email: string): Observable<EmailChangeResponse> {
+    return this.http.post<EmailChangeResponse>('/api/account/email-change/request', { email });
+  }
+
+  confirmEmailChange(token: string): Observable<void> {
+    return this.http.post<void>('/api/account/email-change/confirm', { token });
+  }
+
+  deleteAccount(confirmation: string): Observable<void> {
+    return this.http.delete<void>('/api/account', { body: { confirmation } });
   }
 }

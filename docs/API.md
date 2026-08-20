@@ -18,12 +18,27 @@ object keyed by field name.
 | `POST` | `/api/auth/logout` | Yes | Expire the session cookie |
 | `POST` | `/api/auth/password-reset/request` | No | Request a one-time reset link |
 | `POST` | `/api/auth/password-reset/confirm` | No | Consume a reset token and set a new password |
-| `DELETE` | `/api/account` | Yes | Password-confirmed permanent account and user-data deletion |
+| `GET` | `/api/account` | Yes | Return email verification and recent-authentication status |
+| `POST` | `/api/account/reauth/password` | Yes | Confirm the password and issue a fresh session with a new `authTime` |
+| `PUT` | `/api/account/password` | Recent auth | Change the password and invalidate every session |
+| `POST` | `/api/account/email-change/request` | Recent auth | Send a hashed, 15-minute confirmation token to a new address |
+| `POST` | `/api/account/email-change/confirm` | Recent auth | Confirm the token, change email, and invalidate every session |
+| `DELETE` | `/api/account` | Recent auth | Permanently delete the account after an exact `DELETE` confirmation |
 
 Registration fields: `email`, `password`, `firstName`, `lastName`.
 
-The session response contains `expiresIn`, `userId`, `email`, `firstName`, and
-`lastName`. It never contains the JWT or cookie value.
+The session response contains `expiresIn`, `userId`, `email`, `firstName`,
+`lastName`, and `authenticatedAt`. It never contains the JWT or cookie value.
+
+Recent authentication lasts ten minutes from `authenticatedAt`. Password
+reauthentication sets a new HttpOnly cookie. Password change, completed email
+change, and account deletion expire the browser cookie; password and email
+changes also increment `securityVersion`, invalidating every other session.
+
+Email-change request fields: `email`. Confirmation fields: `token`. Local
+development may return `developmentToken` and `expiresAt`; production always
+returns those fields as `null` and sends the token through configured email.
+Deletion fields: `confirmation`, which must equal `DELETE` exactly.
 
 ## Dashboard
 

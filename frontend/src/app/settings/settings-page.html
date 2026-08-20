@@ -1,0 +1,132 @@
+<section class="settings-heading">
+  <div>
+    <p class="eyebrow">Account preferences</p>
+    <h2>Security and sign-in</h2>
+    <p class="muted">Sensitive changes require a password confirmation from the last ten minutes.</p>
+  </div>
+  @if (isRecentlyAuthenticated()) {
+    <span class="security-status verified">Recently confirmed</span>
+  } @else {
+    <span class="security-status">Confirmation required</span>
+  }
+</section>
+
+@if (error()) {
+  <p class="error-message settings-message">{{ error() }}</p>
+}
+@if (success()) {
+  <p class="success-message settings-message">{{ success() }}</p>
+}
+
+@if (loading()) {
+  <section class="panel"><p class="muted">Loading account preferences...</p></section>
+} @else if (account(); as details) {
+  <div class="settings-grid">
+    <section class="panel settings-card account-email-card">
+      <div class="settings-card-heading">
+        <div>
+          <p class="eyebrow">Current email</p>
+          <h3>{{ details.email }}</h3>
+        </div>
+        <span class="verification-badge" [class.verified]="details.emailVerified">
+          {{ details.emailVerified ? 'Verified' : 'Not independently verified' }}
+        </span>
+      </div>
+      <p class="muted">
+        Email changes are activated only after the new address receives and submits a
+        one-time confirmation. Accounts created before verification tracking may show as unverified.
+      </p>
+    </section>
+
+    <section class="panel settings-card reauthentication-card">
+      <p class="eyebrow">Sensitive controls</p>
+      <h3>Confirm your password</h3>
+      <p class="muted">This unlocks password, email, and deletion controls for ten minutes.</p>
+      <form (ngSubmit)="reauthenticate()">
+        <label>
+          Current password
+          <input type="password" name="reauthenticationPassword"
+            [(ngModel)]="reauthenticationPassword" autocomplete="current-password" required />
+        </label>
+        <button class="secondary-button" type="submit"
+          [disabled]="busy() || !reauthenticationPassword">
+          Confirm password
+        </button>
+      </form>
+    </section>
+
+    <section class="panel settings-card">
+      <p class="eyebrow">Password</p>
+      <h3>Change password</h3>
+      <form (ngSubmit)="changePassword()">
+        <label>
+          New password
+          <input type="password" name="newPassword" [(ngModel)]="password.value"
+            minlength="8" maxlength="72" autocomplete="new-password" required />
+        </label>
+        <label>
+          Confirm new password
+          <input type="password" name="newPasswordConfirmation"
+            [(ngModel)]="password.confirmation" minlength="8" maxlength="72"
+            autocomplete="new-password" required />
+        </label>
+        <button class="primary-button" type="submit"
+          [disabled]="busy() || !isRecentlyAuthenticated() || password.value.length < 8">
+          Change password
+        </button>
+      </form>
+      <div class="settings-divider"></div>
+      <p class="muted">Prefer an emailed recovery link?</p>
+      <button class="text-button settings-text-button" type="button"
+        (click)="sendPasswordReset()" [disabled]="busy()">
+        Send password-reset email
+      </button>
+    </section>
+
+    <section class="panel settings-card">
+      <p class="eyebrow">Email address</p>
+      <h3>Change email</h3>
+      <form (ngSubmit)="requestEmailChange()">
+        <label>
+          New email
+          <input type="email" name="newEmail" [(ngModel)]="newEmail"
+            autocomplete="email" required />
+        </label>
+        <button class="primary-button" type="submit"
+          [disabled]="busy() || !isRecentlyAuthenticated() || !newEmail">
+          Send confirmation
+        </button>
+      </form>
+      <div class="settings-divider"></div>
+      <form (ngSubmit)="confirmEmailChange()">
+        <label>
+          Confirmation token
+          <input name="emailChangeToken" [(ngModel)]="emailChangeToken"
+            autocomplete="one-time-code" required />
+        </label>
+        <button class="secondary-button" type="submit"
+          [disabled]="busy() || !isRecentlyAuthenticated() || !emailChangeToken">
+          Confirm new email
+        </button>
+      </form>
+    </section>
+
+    <section class="panel settings-card danger-zone settings-danger-zone">
+      <p class="eyebrow">Danger zone</p>
+      <h3>Delete account permanently</h3>
+      <p class="muted">
+        Removes your profile, jobs, applications, alerts, reset and email-change tokens,
+        resume records, and private resume files. This cannot be undone.
+      </p>
+      <label>
+        Type DELETE to confirm
+        <input name="deletionConfirmation" [(ngModel)]="deletionConfirmation"
+          autocomplete="off" />
+      </label>
+      <button class="danger-button" type="button" (click)="deleteAccount()"
+        [disabled]="busy() || !isRecentlyAuthenticated() || deletionConfirmation !== 'DELETE'">
+        Permanently delete account
+      </button>
+    </section>
+  </div>
+}

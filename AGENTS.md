@@ -211,7 +211,7 @@ unverified. Do not expose secret values in test or Compose output.
 - Flyway owns the schema and Hibernate validates it.
 - Never edit a migration that may have been applied. Inspect the migration
   directory and add the next sequential `V#__description.sql` file. The current
-  latest migration is V8, so the next migration is normally V9.
+  latest migration is V9, so the next migration is normally V10.
 - Update entities, repositories, services, tests, and API documentation as one
   coherent change.
 - Update `docs/API.md` whenever request or response shapes, status codes, or

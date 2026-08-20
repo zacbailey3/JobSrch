@@ -52,6 +52,7 @@ import com.jobsrch.user.UserAccountRepository;
         UsaJobsProperties.class,
         AdzunaProperties.class,
         AuthCookieProperties.class,
+        AccountSecurityProperties.class,
         EmailProperties.class,
         MalwareScanProperties.class,
         ResumeAnalysisProperties.class

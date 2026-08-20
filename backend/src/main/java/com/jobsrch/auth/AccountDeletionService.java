@@ -1,8 +1,7 @@
 package com.jobsrch.auth;
 
-import org.springframework.http.HttpStatus;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -19,13 +18,14 @@ import com.jobsrch.user.UserAccountRepository;
 
 /**
  * Permanently removes a user-owned account graph and private resume files.
- * Password confirmation limits damage from an unattended authenticated device.
+ * Recent reauthentication and explicit confirmation limit damage from an
+ * unattended authenticated device.
  */
 @Service
 public class AccountDeletionService {
 
     private final CurrentUserService currentUsers;
-    private final PasswordEncoder passwordEncoder;
+    private final RecentAuthenticationService recentAuthentication;
     private final JobApplicationRepository applications;
     private final JobPostingRepository jobs;
     private final SavedSearchRepository savedSearches;
@@ -33,11 +33,12 @@ public class AccountDeletionService {
     private final ResumeStorageService resumeStorage;
     private final CareerProfileRepository profiles;
     private final PasswordResetTokenRepository resetTokens;
+    private final EmailChangeTokenRepository emailChangeTokens;
     private final UserAccountRepository users;
 
     public AccountDeletionService(
             CurrentUserService currentUsers,
-            PasswordEncoder passwordEncoder,
+            RecentAuthenticationService recentAuthentication,
             JobApplicationRepository applications,
             JobPostingRepository jobs,
             SavedSearchRepository savedSearches,
@@ -45,9 +46,10 @@ public class AccountDeletionService {
             ResumeStorageService resumeStorage,
             CareerProfileRepository profiles,
             PasswordResetTokenRepository resetTokens,
+            EmailChangeTokenRepository emailChangeTokens,
             UserAccountRepository users) {
         this.currentUsers = currentUsers;
-        this.passwordEncoder = passwordEncoder;
+        this.recentAuthentication = recentAuthentication;
         this.applications = applications;
         this.jobs = jobs;
         this.savedSearches = savedSearches;
@@ -55,15 +57,17 @@ public class AccountDeletionService {
         this.resumeStorage = resumeStorage;
         this.profiles = profiles;
         this.resetTokens = resetTokens;
+        this.emailChangeTokens = emailChangeTokens;
         this.users = users;
     }
 
     @Transactional
     public void delete(Jwt jwt, DeleteAccountRequest request) {
-        UserAccount user = currentUsers.requireUser(jwt);
-        if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Password is incorrect");
+        recentAuthentication.requireRecent(jwt);
+        if (!"DELETE".equals(request.confirmation())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Type DELETE exactly to confirm");
         }
+        UserAccount user = currentUsers.requireUser(jwt);
 
         resumes.findByUserIdOrderByUploadedAtDesc(user.getId())
                 .forEach(resume -> resumeStorage.delete(resume.getStoredFilename()));
@@ -73,6 +77,7 @@ public class AccountDeletionService {
         resumes.deleteAllByUserId(user.getId());
         profiles.deleteById(user.getId());
         resetTokens.deleteAllByUserId(user.getId());
+        emailChangeTokens.deleteAllByUserId(user.getId());
         users.delete(user);
     }
 }

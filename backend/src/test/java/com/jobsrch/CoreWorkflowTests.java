@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.time.LocalDate;
 import java.time.Instant;
 import java.util.UUID;
@@ -60,7 +61,9 @@ import com.jobsrch.profile.ProfileRequest;
 import com.jobsrch.profile.ProfileResponse;
 import com.jobsrch.profile.ProfileService;
 import com.jobsrch.resume.ResumeResponse;
+import com.jobsrch.resume.ResumeRepository;
 import com.jobsrch.resume.ResumeService;
+import com.jobsrch.resume.ResumeStorageService;
 import com.jobsrch.user.UserAccountRepository;
 import com.jobsrch.user.CurrentUserService;
 
@@ -113,6 +116,12 @@ class CoreWorkflowTests {
     @Autowired
     private CurrentUserService currentUsers;
 
+    @Autowired
+    private ResumeRepository resumes;
+
+    @Autowired
+    private ResumeStorageService resumeStorage;
+
     @Test
     void userCanPermanentlyDeleteAccountAndOwnedData() {
         AuthResponse auth = authService.register(new RegisterRequest(
@@ -121,15 +130,29 @@ class CoreWorkflowTests {
                 "Delete",
                 "Me"));
         Jwt jwt = jwtDecoder.decode(auth.accessToken());
-        jobService.create(jwt, new JobRequest(
+        JobResponse job = jobService.create(jwt, new JobRequest(
                 "Acme", "Junior Developer", "Remote", "Java role",
                 "https://example.com/delete", 0, 2, null));
-        resumeService.upload(jwt, new MockMultipartFile(
+        applicationService.create(jwt, new ApplicationRequest(
+                job.id(), job.company(), job.title(), job.sourceUrl(),
+                ApplicationStatus.APPLIED, LocalDate.now(), "Delete with account"));
+        profileService.update(jwt, new ProfileRequest(
+                null, "Seattle", "Developer", "B.S.", 2026, 1,
+                "Software engineer", "Java", null, null));
+        savedSearchAlertService.create(jwt, new SavedSearchRequest(
+                "Delete search", "java", "Remote", "US", WorkplaceType.REMOTE,
+                30, true, OpportunityType.FULL_TIME, CareerStage.ENTRY_LEVEL,
+                DegreeRequirement.NOT_STATED, SponsorshipStatus.NOT_STATED, 3, true));
+        ResumeResponse resume = resumeService.upload(jwt, new MockMultipartFile(
                 "file", "delete.pdf", "application/pdf", "%PDF-1.4 sample".getBytes()));
+        String storedFilename = resumes.findById(resume.id()).orElseThrow().getStoredFilename();
+        assertThat(Files.exists(resumeStorage.pathFor(storedFilename))).isTrue();
 
-        accountDeletionService.delete(jwt, new DeleteAccountRequest("strong-password"));
+        accountDeletionService.delete(jwt, new DeleteAccountRequest("DELETE"));
+        users.flush();
 
         assertThat(users.findByEmailIgnoreCase("delete@example.com")).isEmpty();
+        assertThat(Files.exists(resumeStorage.pathFor(storedFilename))).isFalse();
     }
 
     @Test
@@ -293,7 +316,7 @@ class CoreWorkflowTests {
     }
 
     @Test
-    void savedSearchReceivesJobsAddedByALaterImport() {
+    void savedSearchReceivesJobsAddedByALaterImport() throws InterruptedException {
         AuthResponse auth = authService.register(new RegisterRequest(
                 "alerts@example.com",
                 "strong-password",
@@ -314,6 +337,9 @@ class CoreWorkflowTests {
                 SponsorshipStatus.NOT_STATED,
                 2,
                 true));
+        // Keep the later import observably later than the persisted baseline
+        // even on databases that round timestamps to microseconds.
+        Thread.sleep(2);
 
         DiscoveredJob discovered = new DiscoveredJob(
                 "alert-1",

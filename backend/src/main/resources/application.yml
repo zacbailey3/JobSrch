@@ -35,6 +35,10 @@ jobsrch:
   password-reset:
     ttl: PT15M
     expose-development-token: ${PASSWORD_RESET_EXPOSE_TOKEN:true}
+  account-security:
+    recent-authentication-window: PT10M
+    email-change-ttl: PT15M
+    expose-development-email-change-token: ${EMAIL_CHANGE_EXPOSE_TOKEN:true}
   email:
     resend-api-key: ${RESEND_API_KEY:}
     from: ${PASSWORD_RESET_FROM:}

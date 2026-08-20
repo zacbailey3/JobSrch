@@ -8,6 +8,7 @@ export interface AuthResponse {
   email: string;
   firstName: string;
   lastName: string;
+  authenticatedAt: string | null;
 }
 
 export interface RegisterRequest {
@@ -94,6 +95,10 @@ export class AuthService {
   clearSession(): void {
     this.session.set(null);
     this.sessionChecked.set(true);
+  }
+
+  acceptSession(session: AuthResponse): void {
+    this.setSession(session);
   }
 
   private setSession(session: AuthResponse): void {
